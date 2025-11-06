@@ -224,20 +224,37 @@ body {
 .player-name {
     font-size: 16px;
     font-weight: 700;
-    color: #ffffff;
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    color: #ffffff; /* Fallback для браузеров без поддержки background-clip */
+    background: linear-gradient(90deg, #ffffff 0%, #ff6b35 50%, #ffffff 100%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     line-height: 1.2;
-    animation: textShimmer 3s infinite ease-in-out;
+    animation: textShimmer 3s infinite ease-in-out, nameGlow 2.5s infinite ease-in-out;
+    filter: drop-shadow(0 0 8px rgba(255, 107, 53, 0.6));
+    position: relative;
 }
 
 @keyframes textShimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+@keyframes nameGlow {
     0%, 100% {
-        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        filter: drop-shadow(0 0 8px rgba(255, 107, 53, 0.6)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8));
+        transform: translateY(0);
     }
     50% {
-        text-shadow: 0 2px 15px rgba(255, 107, 53, 0.3), 0 2px 10px rgba(0, 0, 0, 0.5);
+        filter: drop-shadow(0 0 15px rgba(255, 107, 53, 0.9)) drop-shadow(0 0 25px rgba(255, 107, 53, 0.5)) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.8));
+        transform: translateY(-1px);
     }
 }
 
@@ -267,12 +284,38 @@ body {
 }
 
 .rank-text {
-    color: #ffffff;
+    color: #ff6b35; /* Fallback для браузеров без поддержки background-clip */
+    background: linear-gradient(135deg, #ff6b35 0%, #ffa500 50%, #ff6b35 100%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     font-size: 11px;
     font-weight: 700;
-    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    animation: rankShine 2s infinite ease-in-out, rankPulse 1.5s infinite ease-in-out;
+    filter: drop-shadow(0 0 6px rgba(255, 107, 53, 0.8));
+}
+
+@keyframes rankShine {
+    0% {
+        background-position: -100% 0;
+    }
+    100% {
+        background-position: 100% 0;
+    }
+}
+
+@keyframes rankPulse {
+    0%, 100% {
+        filter: drop-shadow(0 0 6px rgba(255, 107, 53, 0.8)) drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
+        transform: scale(1);
+    }
+    50% {
+        filter: drop-shadow(0 0 12px rgba(255, 107, 53, 1)) drop-shadow(0 0 20px rgba(255, 165, 0, 0.6)) drop-shadow(0 1px 3px rgba(0, 0, 0, 0.6));
+        transform: scale(1.05);
+    }
 }
 
 /* Основной контейнер ELO */
@@ -317,48 +360,96 @@ body {
 .label {
     font-size: 12px;
     font-weight: 700;
-    color: #ffffff;
+    color: #ffffff; /* Fallback для браузеров без поддержки background-clip */
+    background: linear-gradient(90deg, #ffffff 0%, #ff6b35 50%, #ffa500 100%, #ff6b35 150%, #ffffff 200%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     text-transform: uppercase;
     letter-spacing: 1px;
-    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
     margin-bottom: 2px;
-    animation: labelFade 4s infinite ease-in-out;
+    animation: labelSlide 4s infinite linear, labelGlow 3s infinite ease-in-out;
+    filter: drop-shadow(0 0 5px rgba(255, 107, 53, 0.7));
+    position: relative;
 }
 
-@keyframes labelFade {
-    0%, 100% {
-        opacity: 1;
+@keyframes labelSlide {
+    0% {
+        background-position: -200% 0;
     }
-    50% {
-        opacity: 0.8;
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+@keyframes labelGlow {
+    0%, 100% {
+        filter: drop-shadow(0 0 5px rgba(255, 107, 53, 0.7)) drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+        transform: translateX(0);
+    }
+    25% {
+        filter: drop-shadow(0 0 10px rgba(255, 107, 53, 0.9)) drop-shadow(0 0 15px rgba(255, 165, 0, 0.5)) drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+        transform: translateX(1px);
+    }
+    75% {
+        filter: drop-shadow(0 0 10px rgba(255, 107, 53, 0.9)) drop-shadow(0 0 15px rgba(255, 165, 0, 0.5)) drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+        transform: translateX(-1px);
     }
 }
 
 .elo-value {
     font-size: 42px;
     font-weight: 900;
-    color: #ffffff;
-    text-shadow: 
-        0 0 15px rgba(255, 255, 255, 0.3),
-        0 3px 10px rgba(0, 0, 0, 0.6);
+    color: #ffffff; /* Fallback для браузеров без поддержки background-clip */
+    background: linear-gradient(135deg, #ffffff 0%, #ff6b35 30%, #ffa500 60%, #ff6b35 90%, #ffffff 100%);
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     font-family: 'Inter', sans-serif;
     line-height: 1;
     margin: 2px 0;
-    animation: valuePulse 2s infinite ease-in-out;
+    animation: eloGradient 3s infinite ease-in-out, eloGlow 2s infinite ease-in-out, eloBounce 4s infinite ease-in-out;
+    filter: drop-shadow(0 0 10px rgba(255, 107, 53, 0.8));
+    position: relative;
 }
 
-@keyframes valuePulse {
-    0%, 100% {
-        transform: scale(1);
-        text-shadow: 
-            0 0 15px rgba(255, 255, 255, 0.3),
-            0 3px 10px rgba(0, 0, 0, 0.6);
+@keyframes eloGradient {
+    0% {
+        background-position: 0% 0;
     }
     50% {
-        transform: scale(1.02);
-        text-shadow: 
-            0 0 25px rgba(255, 107, 53, 0.5),
-            0 3px 10px rgba(0, 0, 0, 0.6);
+        background-position: 100% 0;
+    }
+    100% {
+        background-position: 0% 0;
+    }
+}
+
+@keyframes eloGlow {
+    0%, 100% {
+        filter: drop-shadow(0 0 10px rgba(255, 107, 53, 0.8)) 
+                drop-shadow(0 0 20px rgba(255, 107, 53, 0.4)) 
+                drop-shadow(0 3px 8px rgba(0, 0, 0, 0.8));
+    }
+    50% {
+        filter: drop-shadow(0 0 20px rgba(255, 107, 53, 1)) 
+                drop-shadow(0 0 40px rgba(255, 165, 0, 0.6)) 
+                drop-shadow(0 0 60px rgba(255, 107, 53, 0.3)) 
+                drop-shadow(0 3px 8px rgba(0, 0, 0, 0.8));
+    }
+}
+
+@keyframes eloBounce {
+    0%, 100% {
+        transform: translateY(0) scale(1);
+    }
+    25% {
+        transform: translateY(-2px) scale(1.01);
+    }
+    75% {
+        transform: translateY(2px) scale(1.01);
     }
 }
 
@@ -587,23 +678,38 @@ body {
 
 /* Специальные цвета для разных значений ELO */
 .elo-value[data-elo-range="high"] {
-    color: #ff6b35;
-    text-shadow: 
-        0 0 25px rgba(255, 107, 53, 0.5),
-        0 4px 15px rgba(0, 0, 0, 0.6);
+    color: #ff6b35; /* Fallback для браузеров без поддержки background-clip */
+    background: linear-gradient(135deg, #ff6b35 0%, #ff4500 50%, #ff6b35 100%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 15px rgba(255, 69, 0, 0.9)) 
+            drop-shadow(0 0 30px rgba(255, 107, 53, 0.6));
+    animation: eloGradient 2s infinite ease-in-out, eloGlow 1.5s infinite ease-in-out, eloBounce 4s infinite ease-in-out;
 }
 
 .elo-value[data-elo-range="medium"] {
-    color: #ffa500;
-    text-shadow: 
-        0 0 25px rgba(255, 165, 0, 0.5),
-        0 4px 15px rgba(0, 0, 0, 0.6);
+    color: #ffa500; /* Fallback для браузеров без поддержки background-clip */
+    background: linear-gradient(135deg, #ffa500 0%, #ff8c00 50%, #ffa500 100%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 15px rgba(255, 165, 0, 0.9)) 
+            drop-shadow(0 0 30px rgba(255, 140, 0, 0.6));
+    animation: eloGradient 2.5s infinite ease-in-out, eloGlow 2s infinite ease-in-out, eloBounce 4s infinite ease-in-out;
 }
 
 .elo-value[data-elo-range="low"] {
-    color: #ffffff;
-    text-shadow: 
-        0 0 20px rgba(255, 255, 255, 0.3),
-        0 4px 15px rgba(0, 0, 0, 0.6);
+    color: #ffffff; /* Fallback для браузеров без поддержки background-clip */
+    background: linear-gradient(135deg, #ffffff 0%, #e0e0e0 50%, #ffffff 100%);
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.6)) 
+            drop-shadow(0 0 20px rgba(255, 107, 53, 0.3));
+    animation: eloGradient 3s infinite ease-in-out, eloGlow 2.5s infinite ease-in-out, eloBounce 4s infinite ease-in-out;
 }
 
