@@ -378,23 +378,17 @@ async function fetchPlayerDataWithAPI() {
             }
         }
         
-        // Получаем статистику последнего матча (не блокируем отображение основных данных)
+        // Получаем статистику последнего матча
         let lastMatchStats = null;
         if (config.playerId) {
             try {
-                console.log('Получение статистики последнего матча для playerId:', config.playerId);
                 lastMatchStats = await fetchLastMatchStats(config.playerId, playerData.games?.cs2 ? 'cs2' : 'csgo');
-                console.log('Статистика последнего матча получена:', lastMatchStats);
             } catch (error) {
                 console.error('Ошибка получения последнего матча:', error);
                 lastMatchStats = null;
             }
-        } else {
-            console.warn('playerId не установлен, невозможно получить статистику последнего матча');
         }
         
-        // Всегда обновляем отображение, даже если нет данных о последнем матче
-        console.log('Обновление отображения с данными:', { elo, playerName: config.faceitNickname, rank: getRankName(level), avatar: avatar ? 'есть' : 'нет', lastMatchStats });
         updateDisplay(elo, config.faceitNickname, getRankName(level), avatar, lastMatchStats);
         
     } catch (error) {
@@ -650,23 +644,17 @@ async function fetchPlayerDataAlternative() {
             }
         }
         
-        // Получаем статистику последнего матча (не блокируем отображение основных данных)
+        // Получаем статистику последнего матча
         let lastMatchStats = null;
         if (config.playerId) {
             try {
-                console.log('Получение статистики последнего матча для playerId (альтернативный метод):', config.playerId);
                 lastMatchStats = await fetchLastMatchStats(config.playerId, playerData.games?.cs2 ? 'cs2' : 'csgo');
-                console.log('Статистика последнего матча получена (альтернативный метод):', lastMatchStats);
             } catch (error) {
-                console.error('Ошибка получения последнего матча (альтернативный метод):', error);
+                console.error('Ошибка получения последнего матча:', error);
                 lastMatchStats = null;
             }
-        } else {
-            console.warn('playerId не установлен (альтернативный метод), невозможно получить статистику последнего матча');
         }
         
-        // Всегда обновляем отображение, даже если нет данных о последнем матче
-        console.log('Обновление отображения с данными (альтернативный метод):', { elo, playerName: config.faceitNickname, rank: getRankName(level), avatar: avatar ? 'есть' : 'нет', lastMatchStats });
         updateDisplay(elo, config.faceitNickname, getRankName(level), avatar, lastMatchStats);
         
     } catch (error) {
@@ -1084,34 +1072,21 @@ function getMatchStatsFromHistory(lastMatch, playerId) {
 
 // Обновление отображения
 function updateDisplay(elo, playerName, rank, avatar = '', matchStats = null) {
-    console.log('updateDisplay вызвана с параметрами:', { elo, playerName, rank, avatar: avatar ? 'есть' : 'нет', matchStats });
-    
-    const eloValueElement = document.getElementById('eloValue'); // Основной ELO в главном блоке
+    const eloValueElement = document.getElementById('eloValue');
     const nameElement = document.getElementById('playerName');
-    const rankElement = document.getElementById('rankBadge')?.querySelector('.rank-text');
+    const rankElement = document.getElementById('rankBadge').querySelector('.rank-text');
     const avatarElement = document.getElementById('playerAvatar');
     const avatarPlaceholder = document.getElementById('avatarPlaceholder');
     
-    if (!eloValueElement || !nameElement || !rankElement) {
-        console.error('Критическая ошибка: не найдены элементы DOM:', {
-            eloValueElement: !!eloValueElement,
-            nameElement: !!nameElement,
-            rankElement: !!rankElement
-        });
-        return;
-    }
-    
-    // Анимация обновления ELO
+    // Анимация обновления
     eloValueElement.style.transform = 'scale(0.9)';
     setTimeout(() => {
         eloValueElement.textContent = elo === 'N/A' || elo === 'ERROR' ? elo : formatElo(elo);
         eloValueElement.style.transform = 'scale(1)';
-        console.log('ELO обновлено:', eloValueElement.textContent);
     }, 150);
     
-    nameElement.textContent = playerName || '---';
-    rankElement.textContent = rank || '---';
-    console.log('Имя и ранг обновлены:', playerName, rank);
+    nameElement.textContent = playerName;
+    rankElement.textContent = rank;
     
     // Обновление аватарки
     if (avatar && avatar.trim() !== '') {
@@ -1125,61 +1100,50 @@ function updateDisplay(elo, playerName, rank, avatar = '', matchStats = null) {
     
     // Обновление статистики последнего матча
     if (matchStats) {
-        console.log('Обновление статистики последнего матча в UI:', matchStats);
-        
         const killsElement = document.getElementById('statKills');
         const deathsElement = document.getElementById('statDeaths');
         const kdElement = document.getElementById('statKD');
-        const eloChangeElement = document.getElementById('statELO'); // Изменение ELO в статистике
+        const eloChangeElement = document.getElementById('statELO');
         const mapElement = document.getElementById('mapValue');
         
-        if (killsElement) {
-            killsElement.textContent = formatStat(matchStats.kills);
-        }
-        if (deathsElement) {
-            deathsElement.textContent = formatStat(matchStats.deaths);
-        }
-        if (kdElement) {
-            kdElement.textContent = formatStat(matchStats.kd);
-        }
+        if (killsElement) killsElement.textContent = formatStat(matchStats.kills);
+        if (deathsElement) deathsElement.textContent = formatStat(matchStats.deaths);
+        if (kdElement) kdElement.textContent = formatStat(matchStats.kd);
+        
         if (eloChangeElement) {
-            // Форматируем изменение ELO
             let eloChangeText = '---';
             if (matchStats.eloChange && matchStats.eloChange !== 'N/A' && matchStats.eloChange !== null) {
-                eloChangeText = matchStats.eloChange.toString();
-                // Убеждаемся, что отрицательные значения отображаются с минусом
-                if (typeof matchStats.eloChange === 'number' && matchStats.eloChange < 0) {
+                if (typeof matchStats.eloChange === 'number') {
+                    if (matchStats.eloChange > 0) {
+                        eloChangeText = `+${matchStats.eloChange}`;
+                    } else if (matchStats.eloChange < 0) {
+                        eloChangeText = matchStats.eloChange.toString();
+                    } else {
+                        eloChangeText = '0';
+                    }
+                } else {
                     eloChangeText = matchStats.eloChange.toString();
-                } else if (typeof matchStats.eloChange === 'number' && matchStats.eloChange > 0) {
-                    eloChangeText = `+${matchStats.eloChange}`;
-                } else if (typeof matchStats.eloChange === 'number' && matchStats.eloChange === 0) {
-                    eloChangeText = '0';
                 }
             }
             
             eloChangeElement.textContent = eloChangeText;
-            console.log('ELO изменение отображается:', eloChangeText);
             
             // Цвет для ELO изменения
             if (eloChangeText !== '---' && eloChangeText !== 'N/A') {
                 if (eloChangeText.startsWith('+')) {
-                    eloChangeElement.style.color = '#4ade80'; // Зеленый для плюса
+                    eloChangeElement.style.color = '#4ade80';
                 } else if (eloChangeText.startsWith('-')) {
-                    eloChangeElement.style.color = '#f87171'; // Красный для минуса
-                } else if (eloChangeText === '0') {
-                    eloChangeElement.style.color = '#ffffff'; // Белый для нуля
+                    eloChangeElement.style.color = '#f87171';
                 } else {
-                    eloChangeElement.style.color = '#ffffff'; // Белый по умолчанию
+                    eloChangeElement.style.color = '#ffffff';
                 }
             } else {
-                eloChangeElement.style.color = '#ffffff'; // Белый если нет данных
+                eloChangeElement.style.color = '#ffffff';
             }
         }
-        if (mapElement) {
-            mapElement.textContent = formatStat(matchStats.map);
-        }
+        
+        if (mapElement) mapElement.textContent = formatStat(matchStats.map);
     } else {
-        console.log('Статистика последнего матча не передана в updateDisplay');
         // Показываем "---" если нет данных
         const elements = ['statKills', 'statDeaths', 'statKD', 'statELO', 'mapValue'];
         elements.forEach(id => {
