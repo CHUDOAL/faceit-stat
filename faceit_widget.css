@@ -1,0 +1,730 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Roboto:wght@400;700;900&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', 'Roboto', sans-serif;
+    background: transparent;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+}
+
+.widget-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+/* Фон в стиле WINLINE - вертикальное разделение */
+.background-gradient {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+        #0a0e27 0%, 
+        #0a0e27 45%,
+        #1a2d5a 55%,
+        #1a2d5a 100%
+    );
+    z-index: 1;
+}
+
+.background-gradient::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 50%;
+    height: 100%;
+    background: radial-gradient(circle at 30% 50%, rgba(26, 45, 90, 0.6) 0%, transparent 70%);
+    animation: cloudMove 8s infinite ease-in-out;
+}
+
+.background-gradient::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 50%;
+    height: 100%;
+    background: radial-gradient(circle at 70% 50%, rgba(42, 82, 152, 0.5) 0%, transparent 70%);
+    animation: cloudMove 10s infinite ease-in-out reverse;
+}
+
+@keyframes cloudMove {
+    0%, 100% {
+        transform: translateX(0) translateY(0);
+        opacity: 0.6;
+    }
+    50% {
+        transform: translateX(10px) translateY(-15px);
+        opacity: 0.8;
+    }
+}
+
+/* Луффи - силуэт слева */
+.luffy-container {
+    position: absolute;
+    left: 3%;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 120px;
+    height: 170px;
+    z-index: 2;
+    opacity: 0.2;
+    pointer-events: none;
+}
+
+.luffy-silhouette {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(180deg, #ff6b6b 0%, #ff8e53 50%, #ff6b6b 100%);
+    clip-path: polygon(
+        30% 0%, 70% 0%, 75% 15%, 80% 20%, 85% 25%, 
+        90% 30%, 92% 40%, 90% 50%, 85% 60%, 80% 70%,
+        75% 80%, 70% 85%, 60% 90%, 50% 95%, 40% 90%,
+        30% 85%, 25% 80%, 20% 70%, 15% 60%, 10% 50%,
+        8% 40%, 10% 30%, 15% 25%, 20% 20%, 25% 15%
+    );
+    animation: luffyBounce 4s infinite ease-in-out;
+    filter: drop-shadow(0 0 20px rgba(255, 107, 107, 0.4));
+}
+
+@keyframes luffyBounce {
+    0%, 100% {
+        transform: translateY(0) scale(1);
+    }
+    50% {
+        transform: translateY(-15px) scale(1.03);
+    }
+}
+
+/* Основной контент */
+.main-content {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 95%;
+    max-width: 700px;
+}
+
+/* Секция игрока с аватаркой */
+.player-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 15px;
+    background: rgba(10, 14, 39, 0.7);
+    border-radius: 12px;
+    border: 2px solid #ff6b35;
+    box-shadow: 
+        0 0 15px rgba(255, 107, 53, 0.3),
+        inset 0 0 10px rgba(255, 107, 53, 0.1);
+    backdrop-filter: blur(10px);
+    animation: sectionFloat 4s infinite ease-in-out;
+    transition: all 0.3s ease;
+}
+
+@keyframes sectionFloat {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-2px);
+    }
+}
+
+.avatar-container {
+    position: relative;
+    width: 50px;
+    height: 50px;
+    flex-shrink: 0;
+}
+
+.player-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 3px solid #ff6b35;
+    object-fit: cover;
+    box-shadow: 0 0 20px rgba(255, 107, 53, 0.5);
+    display: none;
+    position: relative;
+    z-index: 2;
+    animation: avatarGlow 3s infinite ease-in-out;
+    transition: transform 0.3s ease;
+}
+
+.player-avatar:hover {
+    transform: scale(1.05);
+}
+
+@keyframes avatarGlow {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(255, 107, 53, 0.5);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(255, 107, 53, 0.8);
+    }
+}
+
+.player-avatar[src]:not([src=""]) {
+    display: block;
+}
+
+.avatar-placeholder {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 2px solid #ff6b35;
+    background: linear-gradient(135deg, #1a2d5a 0%, #0a0e27 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ff6b35;
+    font-size: 22px;
+    font-weight: 900;
+    box-shadow: 0 0 15px rgba(255, 107, 53, 0.5);
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    animation: placeholderPulse 2.5s infinite ease-in-out;
+}
+
+@keyframes placeholderPulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 15px rgba(255, 107, 53, 0.5);
+    }
+    50% {
+        transform: scale(1.03);
+        box-shadow: 0 0 25px rgba(255, 107, 53, 0.7);
+    }
+}
+
+.player-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.player-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: #ffffff;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    line-height: 1.2;
+    animation: textShimmer 3s infinite ease-in-out;
+}
+
+@keyframes textShimmer {
+    0%, 100% {
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    }
+    50% {
+        text-shadow: 0 2px 15px rgba(255, 107, 53, 0.3), 0 2px 10px rgba(0, 0, 0, 0.5);
+    }
+}
+
+.rank-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    background: rgba(255, 107, 53, 0.2);
+    border: 2px solid #ff6b35;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(255, 107, 53, 0.3);
+    width: fit-content;
+    animation: badgeGlow 2.5s infinite ease-in-out;
+    transition: transform 0.2s ease;
+}
+
+.rank-badge:hover {
+    transform: scale(1.05);
+}
+
+@keyframes badgeGlow {
+    0%, 100% {
+        box-shadow: 0 0 10px rgba(255, 107, 53, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(255, 107, 53, 0.5);
+    }
+}
+
+.rank-text {
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 700;
+    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Основной контейнер ELO */
+.elo-display {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 18px;
+    background: rgba(10, 14, 39, 0.7);
+    border-radius: 15px;
+    border: 3px solid #ff6b35;
+    box-shadow: 
+        0 0 20px rgba(255, 107, 53, 0.4),
+        inset 0 0 15px rgba(255, 107, 53, 0.1);
+    backdrop-filter: blur(10px);
+    animation: borderGlow 3s infinite ease-in-out;
+}
+
+@keyframes borderGlow {
+    0%, 100% {
+        box-shadow: 
+            0 0 30px rgba(255, 107, 53, 0.4),
+            inset 0 0 20px rgba(255, 107, 53, 0.1);
+        border-color: #ff6b35;
+    }
+    50% {
+        box-shadow: 
+            0 0 50px rgba(255, 107, 53, 0.7),
+            inset 0 0 30px rgba(255, 107, 53, 0.2);
+        border-color: #ff8c5a;
+    }
+}
+
+.elo-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.label {
+    font-size: 12px;
+    font-weight: 700;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    margin-bottom: 2px;
+    animation: labelFade 4s infinite ease-in-out;
+}
+
+@keyframes labelFade {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.8;
+    }
+}
+
+.elo-value {
+    font-size: 42px;
+    font-weight: 900;
+    color: #ffffff;
+    text-shadow: 
+        0 0 15px rgba(255, 255, 255, 0.3),
+        0 3px 10px rgba(0, 0, 0, 0.6);
+    font-family: 'Inter', sans-serif;
+    line-height: 1;
+    margin: 2px 0;
+    animation: valuePulse 2s infinite ease-in-out;
+}
+
+@keyframes valuePulse {
+    0%, 100% {
+        transform: scale(1);
+        text-shadow: 
+            0 0 15px rgba(255, 255, 255, 0.3),
+            0 3px 10px rgba(0, 0, 0, 0.6);
+    }
+    50% {
+        transform: scale(1.02);
+        text-shadow: 
+            0 0 25px rgba(255, 107, 53, 0.5),
+            0 3px 10px rgba(0, 0, 0, 0.6);
+    }
+}
+
+/* Оранжевый круг справа (как в WINLINE) */
+.orange-circle {
+    width: 50px;
+    height: 50px;
+    background: #ff6b35;
+    border-radius: 50%;
+    margin-left: 12px;
+    box-shadow: 
+        0 0 20px rgba(255, 107, 53, 0.6),
+        inset 0 0 15px rgba(255, 140, 90, 0.3);
+    animation: circlePulse 3s infinite ease-in-out;
+    flex-shrink: 0;
+}
+
+@keyframes circlePulse {
+    0%, 100% {
+        transform: scale(1);
+        box-shadow: 
+            0 0 30px rgba(255, 107, 53, 0.6),
+            inset 0 0 20px rgba(255, 140, 90, 0.3);
+    }
+    50% {
+        transform: scale(1.05);
+        box-shadow: 
+            0 0 40px rgba(255, 107, 53, 0.8),
+            inset 0 0 25px rgba(255, 140, 90, 0.4);
+    }
+}
+
+/* Статус стрима */
+.stream-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: rgba(10, 14, 39, 0.7);
+    border-radius: 10px;
+    border: 2px solid #ff6b35;
+    box-shadow: 0 0 10px rgba(255, 107, 53, 0.3);
+    backdrop-filter: blur(10px);
+}
+
+.stream-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+.stream-indicator.live {
+    background: #ff6b35;
+    box-shadow: 0 0 10px rgba(255, 107, 53, 0.8);
+}
+
+.stream-indicator.offline {
+    background: #666;
+    animation: none;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.7;
+        transform: scale(1.1);
+    }
+}
+
+.stream-text {
+    font-size: 11px;
+    font-weight: 600;
+    color: #ffffff;
+    text-shadow: 0 1px 5px rgba(0, 0, 0, 0.5);
+}
+
+/* Секция статистики */
+.stats-section {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding: 10px;
+    background: rgba(10, 14, 39, 0.7);
+    border-radius: 12px;
+    border: 2px solid #ff6b35;
+    box-shadow: 
+        0 0 15px rgba(255, 107, 53, 0.3),
+        inset 0 0 10px rgba(255, 107, 53, 0.1);
+    backdrop-filter: blur(10px);
+    animation: statsSectionFloat 5s infinite ease-in-out;
+}
+
+@keyframes statsSectionFloat {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-1px);
+    }
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    padding: 6px;
+    background: rgba(255, 107, 53, 0.1);
+    border-radius: 8px;
+    border: 2px solid rgba(255, 107, 53, 0.3);
+    transition: all 0.3s;
+    animation: statItemPulse 3s infinite ease-in-out;
+    animation-delay: calc(var(--delay, 0) * 0.1s);
+}
+
+.stat-item:nth-child(1) {
+    --delay: 0;
+}
+
+.stat-item:nth-child(2) {
+    --delay: 1;
+}
+
+.stat-item:nth-child(3) {
+    --delay: 2;
+}
+
+.stat-item:nth-child(4) {
+    --delay: 3;
+}
+
+@keyframes statItemPulse {
+    0%, 100% {
+        background: rgba(255, 107, 53, 0.1);
+        border-color: rgba(255, 107, 53, 0.3);
+    }
+    50% {
+        background: rgba(255, 107, 53, 0.15);
+        border-color: rgba(255, 107, 53, 0.4);
+    }
+}
+
+.stat-item:hover {
+    background: rgba(255, 107, 53, 0.2);
+    border-color: #ff6b35;
+    transform: translateY(-2px);
+    box-shadow: 0 0 15px rgba(255, 107, 53, 0.4);
+}
+
+.stat-label {
+    font-size: 9px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.8);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 5px rgba(0, 0, 0, 0.5);
+}
+
+.stat-value {
+    font-size: 16px;
+    font-weight: 900;
+    color: #ffffff;
+    text-shadow: 
+        0 0 8px rgba(255, 255, 255, 0.3),
+        0 2px 6px rgba(0, 0, 0, 0.5);
+    transition: all 0.3s ease;
+    animation: statValueGlow 2s infinite ease-in-out;
+}
+
+.stat-value:hover {
+    transform: scale(1.1);
+    text-shadow: 
+        0 0 15px rgba(255, 107, 53, 0.6),
+        0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes statValueGlow {
+    0%, 100% {
+        text-shadow: 
+            0 0 8px rgba(255, 255, 255, 0.3),
+            0 2px 6px rgba(0, 0, 0, 0.5);
+    }
+    50% {
+        text-shadow: 
+            0 0 12px rgba(255, 107, 53, 0.4),
+            0 2px 6px rgba(0, 0, 0, 0.5);
+    }
+}
+
+/* Панель настроек */
+.config-panel {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: rgba(10, 14, 39, 0.95);
+    padding: 20px;
+    border-radius: 15px;
+    border: 3px solid #ff6b35;
+    box-shadow: 0 0 30px rgba(255, 107, 53, 0.3);
+    z-index: 1000;
+    display: none;
+    min-width: 300px;
+    backdrop-filter: blur(10px);
+}
+
+.config-panel.show {
+    display: block;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.config-panel h3 {
+    color: #ff6b35;
+    margin-bottom: 15px;
+    text-align: center;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.config-panel label {
+    display: block;
+    color: #ffffff;
+    margin-bottom: 10px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.config-panel input {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border: 2px solid #ff6b35;
+    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.5);
+    color: #ffffff;
+    font-size: 14px;
+    transition: all 0.3s;
+}
+
+.config-panel input:focus {
+    outline: none;
+    border-color: #ff8c5a;
+    box-shadow: 0 0 15px rgba(255, 107, 53, 0.4);
+}
+
+.config-panel button {
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    background: linear-gradient(135deg, #ff6b35 0%, #ff8c5a 100%);
+    border: none;
+    border-radius: 8px;
+    color: #ffffff;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.config-panel button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 20px rgba(255, 107, 53, 0.6);
+}
+
+.config-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgba(10, 14, 39, 0.9);
+    border: 3px solid #ff6b35;
+    color: #ff6b35;
+    font-size: 24px;
+    cursor: pointer;
+    z-index: 999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 15px rgba(255, 107, 53, 0.3);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.config-toggle:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 25px rgba(255, 107, 53, 0.5);
+}
+
+/* Адаптивность */
+@media (max-width: 1000px) {
+    .main-content {
+        width: 95%;
+    }
+    
+    .elo-display {
+        padding: 15px 20px;
+    }
+    
+    .elo-value {
+        font-size: 48px;
+    }
+    
+    .orange-circle {
+        width: 60px;
+        height: 60px;
+        margin-left: 15px;
+    }
+    
+    .stats-section {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .luffy-container {
+        width: 120px;
+        height: 170px;
+        opacity: 0.2;
+    }
+}
+
+@media (max-width: 600px) {
+    .stats-section {
+        grid-template-columns: 1fr;
+    }
+    
+    .player-section {
+        flex-direction: column;
+        text-align: center;
+    }
+}
+
+/* Специальные цвета для разных значений ELO */
+.elo-value[data-elo-range="high"] {
+    color: #ff6b35;
+    text-shadow: 
+        0 0 25px rgba(255, 107, 53, 0.5),
+        0 4px 15px rgba(0, 0, 0, 0.6);
+}
+
+.elo-value[data-elo-range="medium"] {
+    color: #ffa500;
+    text-shadow: 
+        0 0 25px rgba(255, 165, 0, 0.5),
+        0 4px 15px rgba(0, 0, 0, 0.6);
+}
+
+.elo-value[data-elo-range="low"] {
+    color: #ffffff;
+    text-shadow: 
+        0 0 20px rgba(255, 255, 255, 0.3),
+        0 4px 15px rgba(0, 0, 0, 0.6);
+}
+

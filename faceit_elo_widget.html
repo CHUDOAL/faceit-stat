@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Faceit ELO Widget - WINLINE Style</title>
+    <link rel="stylesheet" href="./faceit_widget.css">
+</head>
+<body>
+    <div class="widget-container">
+        <div class="background-gradient"></div>
+        <div class="luffy-container">
+            <div class="luffy-silhouette"></div>
+        </div>
+        <div class="main-content">
+            <div class="player-section">
+                <div class="avatar-container">
+                    <img id="playerAvatar" src="" alt="Avatar" class="player-avatar" onerror="this.style.display='none'">
+                    <div class="avatar-placeholder" id="avatarPlaceholder">?</div>
+                </div>
+                <div class="player-info">
+                    <div class="player-name" id="playerName">Loading...</div>
+                    <div class="rank-badge" id="rankBadge">
+                        <span class="rank-text">---</span>
+                    </div>
+                </div>
+            </div>
+            <div class="elo-display">
+                <div class="elo-content">
+                    <div class="label">FACEIT ELO</div>
+                    <div class="elo-value" id="eloValue">---</div>
+                </div>
+                <div class="orange-circle"></div>
+            </div>
+            <div class="stats-section">
+                <div class="stat-item">
+                    <div class="stat-label">Wins</div>
+                    <div class="stat-value" id="statWins">---</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Losses</div>
+                    <div class="stat-value" id="statLosses">---</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Win Rate</div>
+                    <div class="stat-value" id="statWinRate">---</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">K/D</div>
+                    <div class="stat-value" id="statKD">---</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="config-panel" id="configPanel">
+        <h3>Настройки виджета</h3>
+        <label>
+            Faceit никнейм:
+            <input type="text" id="faceitNickname" placeholder="Введите никнейм">
+        </label>
+        <label>
+            Обновление (секунды):
+            <input type="number" id="updateInterval" value="30" min="10" max="300">
+        </label>
+        <button onclick="saveConfig()">Сохранить</button>
+        <button onclick="toggleConfig()">Скрыть</button>
+    </div>
+    <button class="config-toggle" onclick="toggleConfig()">⚙️</button>
+    
+    <script src="./faceit_widget.js"></script>
+</body>
+</html>
+

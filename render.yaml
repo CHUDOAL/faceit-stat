@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: faceit-widget
+    env: python
+    buildCommand: ""
+    startCommand: python server.py
+    envVars:
+      - key: WIDGET_PASSWORD
+        sync: false
+      - key: WIDGET_TOKEN
+        sync: false
+        optional: true
+      - key: PORT
+        value: 8000
+
