@@ -1076,37 +1076,6 @@ function updateDisplay(elo, playerName, rank, avatar = '', matchStats = null) {
         avatarPlaceholder.style.display = 'flex';
     }
     
-    // Обновление статистики последнего матча
-    if (matchStats) {
-        console.log('Обновление статистики последнего матча в UI:', matchStats);
-        
-        const killsElement = document.getElementById('statKills');
-        const deathsElement = document.getElementById('statDeaths');
-        const kdElement = document.getElementById('statKD');
-        const mapElement = document.getElementById('statMap');
-        
-        if (killsElement) {
-            killsElement.textContent = formatStat(matchStats.kills);
-        }
-        if (deathsElement) {
-            deathsElement.textContent = formatStat(matchStats.deaths);
-        }
-        if (kdElement) {
-            kdElement.textContent = formatStat(matchStats.kd);
-        }
-        if (mapElement) {
-            mapElement.textContent = formatStat(matchStats.map);
-        }
-    } else {
-        console.log('Статистика последнего матча не передана в updateDisplay');
-        // Показываем "---" если нет данных
-        const elements = ['statKills', 'statDeaths', 'statKD', 'statMap'];
-        elements.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.textContent = '---';
-        });
-    }
-    
     // Изменение цвета в зависимости от ELO (в стиле WINLINE - белый/оранжевый)
     if (typeof elo === 'number') {
         // Удаляем предыдущие атрибуты

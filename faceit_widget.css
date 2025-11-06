@@ -77,8 +77,8 @@ body {
     left: 3%;
     top: 50%;
     transform: translateY(-50%);
-    width: 120px;
-    height: 170px;
+    width: 60px;
+    height: 85px;
     z-index: 2;
     opacity: 0.2;
     pointer-events: none;
@@ -116,7 +116,7 @@ body {
     flex-direction: column;
     gap: 8px;
     width: 95%;
-    max-width: 700px;
+    max-width: 350px;
 }
 
 /* Секция игрока с аватаркой */
@@ -439,119 +439,6 @@ body {
     text-shadow: 0 1px 5px rgba(0, 0, 0, 0.5);
 }
 
-/* Секция статистики */
-.stats-section {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-    padding: 10px;
-    background: rgba(10, 14, 39, 0.7);
-    border-radius: 12px;
-    border: 2px solid #ff6b35;
-    box-shadow: 
-        0 0 15px rgba(255, 107, 53, 0.3),
-        inset 0 0 10px rgba(255, 107, 53, 0.1);
-    backdrop-filter: blur(10px);
-    animation: statsSectionFloat 5s infinite ease-in-out;
-}
-
-@keyframes statsSectionFloat {
-    0%, 100% {
-        transform: translateY(0);
-    }
-    50% {
-        transform: translateY(-1px);
-    }
-}
-
-.stat-item {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 3px;
-    padding: 6px;
-    background: rgba(255, 107, 53, 0.1);
-    border-radius: 8px;
-    border: 2px solid rgba(255, 107, 53, 0.3);
-    transition: all 0.3s;
-    animation: statItemPulse 3s infinite ease-in-out;
-    animation-delay: calc(var(--delay, 0) * 0.1s);
-}
-
-.stat-item:nth-child(1) {
-    --delay: 0;
-}
-
-.stat-item:nth-child(2) {
-    --delay: 1;
-}
-
-.stat-item:nth-child(3) {
-    --delay: 2;
-}
-
-.stat-item:nth-child(4) {
-    --delay: 3;
-}
-
-@keyframes statItemPulse {
-    0%, 100% {
-        background: rgba(255, 107, 53, 0.1);
-        border-color: rgba(255, 107, 53, 0.3);
-    }
-    50% {
-        background: rgba(255, 107, 53, 0.15);
-        border-color: rgba(255, 107, 53, 0.4);
-    }
-}
-
-.stat-item:hover {
-    background: rgba(255, 107, 53, 0.2);
-    border-color: #ff6b35;
-    transform: translateY(-2px);
-    box-shadow: 0 0 15px rgba(255, 107, 53, 0.4);
-}
-
-.stat-label {
-    font-size: 9px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.8);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    text-shadow: 0 1px 5px rgba(0, 0, 0, 0.5);
-}
-
-.stat-value {
-    font-size: 16px;
-    font-weight: 900;
-    color: #ffffff;
-    text-shadow: 
-        0 0 8px rgba(255, 255, 255, 0.3),
-        0 2px 6px rgba(0, 0, 0, 0.5);
-    transition: all 0.3s ease;
-    animation: statValueGlow 2s infinite ease-in-out;
-}
-
-.stat-value:hover {
-    transform: scale(1.1);
-    text-shadow: 
-        0 0 15px rgba(255, 107, 53, 0.6),
-        0 2px 6px rgba(0, 0, 0, 0.5);
-}
-
-@keyframes statValueGlow {
-    0%, 100% {
-        text-shadow: 
-            0 0 8px rgba(255, 255, 255, 0.3),
-            0 2px 6px rgba(0, 0, 0, 0.5);
-    }
-    50% {
-        text-shadow: 
-            0 0 12px rgba(255, 107, 53, 0.4),
-            0 2px 6px rgba(0, 0, 0, 0.5);
-    }
-}
-
 /* Панель настроек */
 .config-panel {
     position: fixed;
@@ -684,22 +571,14 @@ body {
         margin-left: 15px;
     }
     
-    .stats-section {
-        grid-template-columns: repeat(2, 1fr);
-    }
-    
     .luffy-container {
-        width: 120px;
-        height: 170px;
+        width: 60px;
+        height: 85px;
         opacity: 0.2;
     }
 }
 
 @media (max-width: 600px) {
-    .stats-section {
-        grid-template-columns: 1fr;
-    }
-    
     .player-section {
         flex-direction: column;
         text-align: center;
