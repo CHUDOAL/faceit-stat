@@ -378,25 +378,17 @@ async function fetchPlayerDataWithAPI() {
             }
         }
         
-        // Если идет стрим, вычисляем статистику за стрим
-        if (streamSession && streamSession.isLive) {
-            // Сохраняем начальную статистику при первом получении данных после начала стрима
-            if (!initialStats) {
-                saveInitialStatsToStorage(stats);
-                // Показываем 0 при начале стрима
-                stats = {
-                    wins: 0,
-                    losses: 0,
-                    winRate: '0%',
-                    kd: 'N/A'
-                };
-            } else {
-                // Вычисляем статистику за стрим
-                stats = calculateStreamStats(stats);
+        // Получаем статистику последнего матча
+        let lastMatchStats = null;
+        if (config.playerId) {
+            try {
+                lastMatchStats = await fetchLastMatchStats(config.playerId, playerData.games?.cs2 ? 'cs2' : 'csgo');
+            } catch (error) {
+                console.error('Ошибка получения последнего матча:', error);
             }
         }
         
-        updateDisplay(elo, config.faceitNickname, getRankName(level), avatar, stats);
+        updateDisplay(elo, config.faceitNickname, getRankName(level), avatar, lastMatchStats);
         
     } catch (error) {
         console.error('Ошибка API метода:', error);
@@ -651,25 +643,17 @@ async function fetchPlayerDataAlternative() {
             }
         }
         
-        // Если идет стрим, вычисляем статистику за стрим
-        if (streamSession && streamSession.isLive) {
-            // Сохраняем начальную статистику при первом получении данных после начала стрима
-            if (!initialStats) {
-                saveInitialStatsToStorage(stats);
-                // Показываем 0 при начале стрима
-                stats = {
-                    wins: 0,
-                    losses: 0,
-                    winRate: '0%',
-                    kd: 'N/A'
-                };
-            } else {
-                // Вычисляем статистику за стрим
-                stats = calculateStreamStats(stats);
+        // Получаем статистику последнего матча
+        let lastMatchStats = null;
+        if (config.playerId) {
+            try {
+                lastMatchStats = await fetchLastMatchStats(config.playerId, playerData.games?.cs2 ? 'cs2' : 'csgo');
+            } catch (error) {
+                console.error('Ошибка получения последнего матча:', error);
             }
         }
         
-        updateDisplay(elo, config.faceitNickname, getRankName(level), avatar, stats);
+        updateDisplay(elo, config.faceitNickname, getRankName(level), avatar, lastMatchStats);
         
     } catch (error) {
         console.error('Ошибка альтернативного метода:', error);
@@ -719,8 +703,220 @@ async function fetchPlayerDataWebScraping() {
     }
 }
 
+// Получение статистики последнего матча
+async function fetchLastMatchStats(playerId, gameType = 'cs2') {
+    try {
+        // Получаем историю матчей
+        const historyUrl = `${FACEIT_API_BASE}/players/${playerId}/history?game=${gameType}&offset=0&limit=1`;
+        
+        const historyResponse = await fetch(historyUrl, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${FACEIT_API_KEY}`,
+                'Accept': 'application/json'
+            }
+        });
+        
+        if (!historyResponse.ok) {
+            throw new Error(`Ошибка получения истории: ${historyResponse.status}`);
+        }
+        
+        const historyData = await historyResponse.json();
+        
+        if (!historyData.items || historyData.items.length === 0) {
+            console.log('Нет матчей в истории');
+            return null;
+        }
+        
+        const lastMatch = historyData.items[0];
+        const matchId = lastMatch.match_id;
+        
+        console.log('Последний матч:', lastMatch);
+        
+        // Получаем детали матча
+        const matchUrl = `${FACEIT_API_BASE}/matches/${matchId}`;
+        const matchResponse = await fetch(matchUrl, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${FACEIT_API_KEY}`,
+                'Accept': 'application/json'
+            }
+        });
+        
+        if (!matchResponse.ok) {
+            throw new Error(`Ошибка получения матча: ${matchResponse.status}`);
+        }
+        
+        const matchData = await matchResponse.json();
+        
+        // Получаем статистику матча
+        const statsUrl = `${FACEIT_API_BASE}/matches/${matchId}/stats`;
+        const statsResponse = await fetch(statsUrl, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${FACEIT_API_KEY}`,
+                'Accept': 'application/json'
+            }
+        });
+        
+        let playerStats = null;
+        if (statsResponse.ok) {
+            const statsData = await statsResponse.json();
+            console.log('Статистика матча:', statsData);
+            
+            // Ищем статистику игрока в разных форматах ответа API
+            // Формат 1: rounds -> teams -> players
+            if (statsData.rounds && statsData.rounds.length > 0) {
+                for (const round of statsData.rounds) {
+                    if (round.teams && round.teams.length > 0) {
+                        for (const team of round.teams) {
+                            if (team.players && team.players.length > 0) {
+                                const player = team.players.find(p => p.player_id === playerId || p.id === playerId);
+                                if (player) {
+                                    playerStats = player;
+                                    break;
+                                }
+                            }
+                        }
+                        if (playerStats) break;
+                    }
+                }
+            }
+            
+            // Формат 2: teams -> players (прямо в корне)
+            if (!playerStats && statsData.teams && statsData.teams.length > 0) {
+                for (const team of statsData.teams) {
+                    if (team.players && team.players.length > 0) {
+                        const player = team.players.find(p => p.player_id === playerId || p.id === playerId);
+                        if (player) {
+                            playerStats = player;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Формируем данные о последнем матче
+        const matchStats = {
+            kills: 'N/A',
+            deaths: 'N/A',
+            kd: 'N/A',
+            eloChange: 'N/A',
+            map: 'N/A'
+        };
+        
+        // Получаем kills и deaths из статистики
+        if (playerStats) {
+            // Пробуем разные варианты названий полей
+            matchStats.kills = playerStats.player_stats?.Kills || 
+                              playerStats.player_stats?.kills || 
+                              playerStats.stats?.Kills ||
+                              playerStats.stats?.kills ||
+                              playerStats.Kills ||
+                              playerStats.kills ||
+                              'N/A';
+            
+            matchStats.deaths = playerStats.player_stats?.Deaths || 
+                               playerStats.player_stats?.deaths || 
+                               playerStats.stats?.Deaths ||
+                               playerStats.stats?.deaths ||
+                               playerStats.Deaths ||
+                               playerStats.deaths ||
+                               'N/A';
+            
+            // Преобразуем в числа
+            if (matchStats.kills !== 'N/A') {
+                matchStats.kills = typeof matchStats.kills === 'number' ? matchStats.kills : parseInt(matchStats.kills);
+                if (isNaN(matchStats.kills)) matchStats.kills = 'N/A';
+            }
+            
+            if (matchStats.deaths !== 'N/A') {
+                matchStats.deaths = typeof matchStats.deaths === 'number' ? matchStats.deaths : parseInt(matchStats.deaths);
+                if (isNaN(matchStats.deaths)) matchStats.deaths = 'N/A';
+            }
+            
+            // Вычисляем K/D
+            if (typeof matchStats.kills === 'number' && typeof matchStats.deaths === 'number' && matchStats.deaths > 0) {
+                matchStats.kd = (matchStats.kills / matchStats.deaths).toFixed(2);
+            } else if (playerStats.player_stats?.['K/D Ratio'] || playerStats.stats?.['K/D Ratio']) {
+                const kdValue = playerStats.player_stats?.['K/D Ratio'] || playerStats.stats?.['K/D Ratio'];
+                matchStats.kd = parseFloat(kdValue).toFixed(2);
+            } else if (playerStats['K/D Ratio'] || playerStats.kd) {
+                const kdValue = playerStats['K/D Ratio'] || playerStats.kd;
+                matchStats.kd = parseFloat(kdValue).toFixed(2);
+            }
+        }
+        
+        // Получаем изменение ELO из истории матча
+        // ELO изменение может быть в разных полях
+        let eloChange = null;
+        if (lastMatch.elo && typeof lastMatch.elo === 'number') {
+            eloChange = lastMatch.elo;
+        } else if (lastMatch.elo_change && typeof lastMatch.elo_change === 'number') {
+            eloChange = lastMatch.elo_change;
+        } else if (lastMatch.elo_delta && typeof lastMatch.elo_delta === 'number') {
+            eloChange = lastMatch.elo_delta;
+        }
+        
+        if (eloChange !== null) {
+            if (eloChange > 0) {
+                matchStats.eloChange = `+${eloChange}`;
+            } else if (eloChange < 0) {
+                matchStats.eloChange = eloChange.toString();
+            } else {
+                matchStats.eloChange = '0';
+            }
+        }
+        
+        // Получаем карту из разных источников
+        // Пробуем разные варианты получения карты
+        if (matchData.voting && matchData.voting.map) {
+            matchStats.map = matchData.voting.map.name || matchData.voting.map.pick?.[0] || 'N/A';
+        } else if (matchData.matchmaking && matchData.matchmaking.map) {
+            matchStats.map = matchData.matchmaking.map;
+        } else if (matchData.game_map) {
+            matchStats.map = matchData.game_map;
+        } else if (matchData.map) {
+            matchStats.map = matchData.map;
+        } else if (lastMatch.match_round_stats && lastMatch.match_round_stats.length > 0) {
+            matchStats.map = lastMatch.match_round_stats[0].Map || 'N/A';
+        } else if (lastMatch.map) {
+            matchStats.map = lastMatch.map;
+        }
+        
+        // Если карта не найдена, пробуем из названия матча или entity
+        if (matchStats.map === 'N/A' || !matchStats.map) {
+            if (matchData.entity && matchData.entity.name) {
+                const mapMatch = matchData.entity.name.match(/(de_\w+)/i);
+                if (mapMatch) {
+                    matchStats.map = mapMatch[1].replace('de_', '').toUpperCase();
+                } else {
+                    // Пробуем из полного названия
+                    const nameMatch = matchData.entity.name.match(/de_(\w+)/i);
+                    if (nameMatch) {
+                        matchStats.map = nameMatch[1].toUpperCase();
+                    }
+                }
+            }
+        }
+        
+        // Очищаем название карты от префикса de_
+        if (matchStats.map && matchStats.map !== 'N/A') {
+            matchStats.map = matchStats.map.toString().replace(/^de_/i, '').toUpperCase();
+        }
+        
+        console.log('Статистика последнего матча:', matchStats);
+        return matchStats;
+        
+    } catch (error) {
+        console.error('Ошибка получения последнего матча:', error);
+        return null;
+    }
+}
+
 // Обновление отображения
-function updateDisplay(elo, playerName, rank, avatar = '', stats = null) {
+function updateDisplay(elo, playerName, rank, avatar = '', matchStats = null) {
     const eloElement = document.getElementById('eloValue');
     const nameElement = document.getElementById('playerName');
     const rankElement = document.getElementById('rankBadge').querySelector('.rank-text');
@@ -747,32 +943,49 @@ function updateDisplay(elo, playerName, rank, avatar = '', stats = null) {
         avatarPlaceholder.style.display = 'flex';
     }
     
-    // Обновление статистики
-    if (stats) {
-        console.log('Обновление статистики в UI:', stats);
-        const winsElement = document.getElementById('statWins');
-        const lossesElement = document.getElementById('statLosses');
-        const winRateElement = document.getElementById('statWinRate');
-        const kdElement = document.getElementById('statKD');
+    // Обновление статистики последнего матча
+    if (matchStats) {
+        console.log('Обновление статистики последнего матча в UI:', matchStats);
         
-        if (winsElement) {
-            winsElement.textContent = formatStat(stats.wins);
-            console.log('Wins установлено:', formatStat(stats.wins));
+        const killsElement = document.getElementById('statKills');
+        const deathsElement = document.getElementById('statDeaths');
+        const kdElement = document.getElementById('statKD');
+        const eloElement = document.getElementById('statELO');
+        const mapElement = document.getElementById('mapValue');
+        
+        if (killsElement) {
+            killsElement.textContent = formatStat(matchStats.kills);
         }
-        if (lossesElement) {
-            lossesElement.textContent = formatStat(stats.losses);
-            console.log('Losses установлено:', formatStat(stats.losses));
-        }
-        if (winRateElement) {
-            winRateElement.textContent = formatStat(stats.winRate);
-            console.log('Win Rate установлено:', formatStat(stats.winRate));
+        if (deathsElement) {
+            deathsElement.textContent = formatStat(matchStats.deaths);
         }
         if (kdElement) {
-            kdElement.textContent = formatStat(stats.kd);
-            console.log('K/D установлено:', formatStat(stats.kd));
+            kdElement.textContent = formatStat(matchStats.kd);
+        }
+        if (eloElement) {
+            eloElement.textContent = formatStat(matchStats.eloChange);
+            // Цвет для ELO изменения
+            if (matchStats.eloChange && matchStats.eloChange !== 'N/A') {
+                if (matchStats.eloChange.startsWith('+')) {
+                    eloElement.style.color = '#4ade80'; // Зеленый для плюса
+                } else if (matchStats.eloChange.startsWith('-')) {
+                    eloElement.style.color = '#f87171'; // Красный для минуса
+                } else {
+                    eloElement.style.color = '#ffffff'; // Белый для нуля
+                }
+            }
+        }
+        if (mapElement) {
+            mapElement.textContent = formatStat(matchStats.map);
         }
     } else {
-        console.log('Статистика не передана в updateDisplay');
+        console.log('Статистика последнего матча не передана в updateDisplay');
+        // Показываем "---" если нет данных
+        const elements = ['statKills', 'statDeaths', 'statKD', 'statELO', 'mapValue'];
+        elements.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = '---';
+        });
     }
     
     // Изменение цвета в зависимости от ELO (в стиле WINLINE - белый/оранжевый)
