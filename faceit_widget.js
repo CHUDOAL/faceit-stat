@@ -385,7 +385,6 @@ async function fetchPlayerDataWithAPI() {
                 lastMatchStats = await fetchLastMatchStats(config.playerId, playerData.games?.cs2 ? 'cs2' : 'csgo');
             } catch (error) {
                 console.error('Ошибка получения последнего матча:', error);
-                lastMatchStats = null;
             }
         }
         
@@ -401,11 +400,11 @@ async function fetchPlayerDataWithAPI() {
         
         // Показываем более понятное сообщение об ошибке
         if (error.message.includes('не найден')) {
-            updateDisplay('ERROR', 'Игрок не найден', 'Проверьте никнейм', '', null, null);
+            updateDisplay('ERROR', 'Игрок не найден', 'Проверьте никнейм', '', null);
         } else if (error.message.includes('API ключ')) {
-            updateDisplay('ERROR', 'Ошибка API ключа', 'Проверьте ключ', '', null, null);
+            updateDisplay('ERROR', 'Ошибка API ключа', 'Проверьте ключ', '', null);
         } else {
-            updateDisplay('ERROR', error.message.substring(0, 30) + '...', '---', '', null, null);
+            updateDisplay('ERROR', error.message.substring(0, 30) + '...', '---', '', null);
         }
         
         throw error;
@@ -644,14 +643,16 @@ async function fetchPlayerDataAlternative() {
             }
         }
         
+        // Сохраняем текущий ELO для вычисления изменения
+        const currentElo = elo;
+        
         // Получаем статистику последнего матча
         let lastMatchStats = null;
         if (config.playerId) {
             try {
-                lastMatchStats = await fetchLastMatchStats(config.playerId, playerData.games?.cs2 ? 'cs2' : 'csgo');
+                lastMatchStats = await fetchLastMatchStats(config.playerId, playerData.games?.cs2 ? 'cs2' : 'csgo', currentElo);
             } catch (error) {
                 console.error('Ошибка получения последнего матча:', error);
-                lastMatchStats = null;
             }
         }
         
@@ -706,12 +707,10 @@ async function fetchPlayerDataWebScraping() {
 }
 
 // Получение статистики последнего матча
-async function fetchLastMatchStats(playerId, gameType = 'cs2') {
+async function fetchLastMatchStats(playerId, gameType = 'cs2', currentElo = null) {
     try {
         // Получаем историю матчей
         const historyUrl = `${FACEIT_API_BASE}/players/${playerId}/history?game=${gameType}&offset=0&limit=1`;
-        
-        console.log('Запрос истории матчей:', historyUrl);
         
         const historyResponse = await fetch(historyUrl, {
             method: 'GET',
@@ -722,24 +721,7 @@ async function fetchLastMatchStats(playerId, gameType = 'cs2') {
         });
         
         if (!historyResponse.ok) {
-            console.error('Ошибка получения истории матчей:', historyResponse.status, historyResponse.statusText);
-            // Пробуем получить данные без авторизации (публичный API)
-            try {
-                const publicHistoryResponse = await fetch(historyUrl);
-                if (publicHistoryResponse.ok) {
-                    const publicHistoryData = await publicHistoryResponse.json();
-                    if (publicHistoryData.items && publicHistoryData.items.length > 0) {
-                        console.log('История матчей получена через публичный API');
-                        // Продолжаем обработку с публичными данными
-                        const lastMatch = publicHistoryData.items[0];
-                        return getMatchStatsFromHistory(lastMatch, playerId);
-                    }
-                }
-            } catch (publicError) {
-                console.error('Ошибка получения истории через публичный API:', publicError);
-            }
-            // Не бросаем ошибку, просто возвращаем null
-            return null;
+            throw new Error(`Ошибка получения истории: ${historyResponse.status}`);
         }
         
         const historyData = await historyResponse.json();
@@ -752,32 +734,17 @@ async function fetchLastMatchStats(playerId, gameType = 'cs2') {
         const lastMatch = historyData.items[0];
         const matchId = lastMatch.match_id;
         
-        console.log('Последний матч (полный объект):', JSON.stringify(lastMatch, null, 2));
+        console.log('Последний матч:', lastMatch);
         console.log('Все ключи последнего матча:', Object.keys(lastMatch));
         
-        // Ищем изменение ELO во всех возможных местах
-        const eloFields = {
-            'elo': lastMatch.elo,
-            'elo_change': lastMatch.elo_change,
-            'elo_delta': lastMatch.elo_delta,
-            'elo change': lastMatch['elo change'],
-            'elo-change': lastMatch['elo-change'],
-            'eloChange': lastMatch.eloChange,
-            'eloDelta': lastMatch.eloDelta,
-            'faceit_elo': lastMatch.faceit_elo,
-            'faceit_elo_change': lastMatch.faceit_elo_change
-        };
-        console.log('ELO поля в последнем матче:', eloFields);
-        
-        // Проверяем teams для изменения ELO
-        if (lastMatch.teams) {
-            console.log('Teams в последнем матче:', lastMatch.teams);
-            for (const team of lastMatch.teams) {
-                if (team.players) {
-                    console.log('Players в team:', team.players);
-                }
-            }
-        }
+        // Логируем все поля для отладки
+        console.log('Поля lastMatch для отладки ELO:', {
+            elo: lastMatch.elo,
+            elo_change: lastMatch.elo_change,
+            elo_delta: lastMatch.elo_delta,
+            teams: lastMatch.teams,
+            results: lastMatch.results
+        });
         
         // Получаем детали матча
         const matchUrl = `${FACEIT_API_BASE}/matches/${matchId}`;
@@ -790,16 +757,7 @@ async function fetchLastMatchStats(playerId, gameType = 'cs2') {
         });
         
         if (!matchResponse.ok) {
-            console.error('Ошибка получения матча:', matchResponse.status);
-            // Пробуем получить данные только из истории матча
-            console.log('Попытка получить данные из истории матча');
-            const historyStats = getMatchStatsFromHistory(lastMatch, playerId);
-            if (historyStats && (historyStats.eloChange !== 'N/A' || historyStats.map !== 'N/A')) {
-                console.log('Данные получены из истории матча:', historyStats);
-                return historyStats;
-            }
-            // Если не получилось, возвращаем null
-            return null;
+            throw new Error(`Ошибка получения матча: ${matchResponse.status}`);
         }
         
         const matchData = await matchResponse.json();
@@ -904,10 +862,10 @@ async function fetchLastMatchStats(playerId, gameType = 'cs2') {
         }
         
         // Получаем изменение ELO из истории матча
-        // ELO изменение может быть в разных полях и форматах
+        // ELO изменение может быть в разных полях и структурах
         let eloChange = null;
         
-        // Пробуем разные варианты полей (проверяем все возможные варианты)
+        // Пробуем разные варианты полей в lastMatch
         const possibleEloFields = [
             'elo', 'elo_change', 'elo_delta', 'elo change', 'elo-change',
             'eloChange', 'eloDelta', 'faceit_elo_change', 'faceit_elo_delta',
@@ -926,38 +884,104 @@ async function fetchLastMatchStats(playerId, gameType = 'cs2') {
             }
         }
         
-        // Если не нашли, пробуем из результата матча или из teams
-        if (eloChange === null || isNaN(eloChange)) {
-            // В Faceit API изменение ELO может быть в teams
-            if (lastMatch.teams && lastMatch.teams.length > 0) {
-                for (const team of lastMatch.teams) {
-                    if (team.players && team.players.length > 0) {
-                        const player = team.players.find(p => 
-                            p.player_id === playerId || 
-                            p.id === playerId ||
-                            p.player_id === lastMatch.game_player_id ||
-                            p.id === lastMatch.game_player_id
-                        );
-                        if (player) {
-                            // Пробуем разные поля для изменения ELO
-                            if (player.elo !== undefined && player.elo !== null) {
-                                eloChange = typeof player.elo === 'number' ? player.elo : parseInt(player.elo);
-                            } else if (player.elo_change !== undefined && player.elo_change !== null) {
-                                eloChange = typeof player.elo_change === 'number' ? player.elo_change : parseInt(player.elo_change);
-                            } else if (player.elo_delta !== undefined && player.elo_delta !== null) {
-                                eloChange = typeof player.elo_delta === 'number' ? player.elo_delta : parseInt(player.elo_delta);
+        // Если не нашли в lastMatch, пробуем в teams
+        if (eloChange === null && lastMatch.teams && lastMatch.teams.length > 0) {
+            for (const team of lastMatch.teams) {
+                if (team.players && team.players.length > 0) {
+                    const player = team.players.find(p => 
+                        p.player_id === playerId || 
+                        p.id === playerId ||
+                        p.nickname === config.faceitNickname
+                    );
+                    if (player) {
+                        // Пробуем разные поля для изменения ELO
+                        for (const field of possibleEloFields) {
+                            const value = player[field];
+                            if (value !== undefined && value !== null && value !== '') {
+                                const numValue = typeof value === 'number' ? value : parseInt(value);
+                                if (!isNaN(numValue)) {
+                                    eloChange = numValue;
+                                    console.log(`Изменение ELO найдено в player.${field}:`, eloChange);
+                                    break;
+                                }
                             }
-                            if (eloChange !== null && !isNaN(eloChange)) break;
                         }
+                        if (eloChange !== null) break;
                     }
                 }
             }
-            
-            // Если все еще не нашли, пробуем вычислить из текущего и предыдущего ELO
-            if ((eloChange === null || isNaN(eloChange)) && lastMatch.faceit_elo !== undefined) {
-                // Если есть текущий ELO в матче, можно вычислить изменение
-                // Но для этого нужен предыдущий ELO, который обычно не в истории
+        }
+        
+        // Если не нашли, пробуем в matchData
+        if (eloChange === null && matchData.teams && matchData.teams.length > 0) {
+            for (const team of matchData.teams) {
+                if (team.roster && team.roster.length > 0) {
+                    const player = team.roster.find(p => 
+                        p.player_id === playerId || 
+                        p.id === playerId ||
+                        p.nickname === config.faceitNickname
+                    );
+                    if (player) {
+                        for (const field of possibleEloFields) {
+                            const value = player[field];
+                            if (value !== undefined && value !== null && value !== '') {
+                                const numValue = typeof value === 'number' ? value : parseInt(value);
+                                if (!isNaN(numValue)) {
+                                    eloChange = numValue;
+                                    console.log(`Изменение ELO найдено в matchData.team.roster.${field}:`, eloChange);
+                                    break;
+                                }
+                            }
+                        }
+                        if (eloChange !== null) break;
+                    }
+                }
             }
+        }
+        
+        // Если все еще не нашли, пробуем вычислить из результата матча
+        // В Faceit API изменение ELO может быть в results или вычисляться из разницы ELO
+        if (eloChange === null && lastMatch.teams && lastMatch.teams.length >= 2) {
+            // Пробуем найти команду игрока и результат
+            for (const team of lastMatch.teams) {
+                if (team.players && team.players.some(p => 
+                    p.player_id === playerId || 
+                    p.id === playerId ||
+                    p.nickname === config.faceitNickname
+                )) {
+                    // Проверяем results для изменения ELO
+                    if (lastMatch.results) {
+                        console.log('Results в lastMatch:', lastMatch.results);
+                        // Пробуем найти изменение ELO в results
+                        for (const field of possibleEloFields) {
+                            const value = lastMatch.results[field];
+                            if (value !== undefined && value !== null && value !== '') {
+                                const numValue = typeof value === 'number' ? value : parseInt(value);
+                                if (!isNaN(numValue)) {
+                                    eloChange = numValue;
+                                    console.log(`Изменение ELO найдено в results.${field}:`, eloChange);
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Если команда выиграла, обычно +ELO, если проиграла -ELO
+                    // Но точное значение нужно получать из API
+                    if (eloChange === null) {
+                        console.log('Команда игрока найдена, но изменение ELO не найдено в данных');
+                    }
+                }
+            }
+        }
+        
+        // Если все еще не нашли и есть текущий ELO, пробуем вычислить из разницы
+        // Но для этого нужен ELO до матча, который обычно не доступен
+        // В Faceit API изменение ELO обычно есть в истории матча
+        if (eloChange === null && currentElo && typeof currentElo === 'number') {
+            // Пробуем найти ELO до матча в данных
+            // Обычно это не доступно, но можно попробовать
+            console.log('Попытка вычислить изменение ELO из текущего ELO:', currentElo);
         }
         
         // Форматируем изменение ELO
@@ -969,9 +993,13 @@ async function fetchLastMatchStats(playerId, gameType = 'cs2') {
             } else {
                 matchStats.eloChange = '0';
             }
-            console.log('Изменение ELO найдено:', eloChange, '→', matchStats.eloChange);
+            console.log('Изменение ELO установлено:', matchStats.eloChange);
         } else {
-            console.log('Изменение ELO не найдено в последнем матче');
+            console.log('Изменение ELO не найдено в данных матча');
+            console.log('Все ключи lastMatch:', Object.keys(lastMatch));
+            if (lastMatch.teams) {
+                console.log('Teams в lastMatch:', lastMatch.teams);
+            }
         }
         
         // Получаем карту из разных источников
@@ -1016,73 +1044,23 @@ async function fetchLastMatchStats(playerId, gameType = 'cs2') {
         
     } catch (error) {
         console.error('Ошибка получения последнего матча:', error);
-        // Возвращаем null вместо того, чтобы бросать ошибку
         return null;
     }
 }
 
-// Получение статистики матча только из истории (fallback)
-function getMatchStatsFromHistory(lastMatch, playerId) {
-    const matchStats = {
-        kills: 'N/A',
-        deaths: 'N/A',
-        kd: 'N/A',
-        eloChange: 'N/A',
-        map: 'N/A'
-    };
-    
-    // Получаем изменение ELO из истории
-    const possibleEloFields = [
-        'elo', 'elo_change', 'elo_delta', 'elo change', 'elo-change',
-        'eloChange', 'eloDelta', 'faceit_elo_change', 'faceit_elo_delta',
-        'rating_change', 'rating_delta', 'change', 'delta'
-    ];
-    
-    for (const field of possibleEloFields) {
-        const value = lastMatch[field];
-        if (value !== undefined && value !== null && value !== '') {
-            const numValue = typeof value === 'number' ? value : parseInt(value);
-            if (!isNaN(numValue)) {
-                if (numValue > 0) {
-                    matchStats.eloChange = `+${numValue}`;
-                } else if (numValue < 0) {
-                    matchStats.eloChange = numValue.toString();
-                } else {
-                    matchStats.eloChange = '0';
-                }
-                break;
-            }
-        }
-    }
-    
-    // Получаем карту из истории
-    if (lastMatch.match_round_stats && lastMatch.match_round_stats.length > 0) {
-        matchStats.map = lastMatch.match_round_stats[0].Map || 'N/A';
-    } else if (lastMatch.map) {
-        matchStats.map = lastMatch.map;
-    }
-    
-    // Очищаем название карты от префикса de_
-    if (matchStats.map && matchStats.map !== 'N/A') {
-        matchStats.map = matchStats.map.toString().replace(/^de_/i, '').toUpperCase();
-    }
-    
-    return matchStats;
-}
-
 // Обновление отображения
 function updateDisplay(elo, playerName, rank, avatar = '', matchStats = null) {
-    const eloValueElement = document.getElementById('eloValue');
+    const eloElement = document.getElementById('eloValue');
     const nameElement = document.getElementById('playerName');
     const rankElement = document.getElementById('rankBadge').querySelector('.rank-text');
     const avatarElement = document.getElementById('playerAvatar');
     const avatarPlaceholder = document.getElementById('avatarPlaceholder');
     
     // Анимация обновления
-    eloValueElement.style.transform = 'scale(0.9)';
+    eloElement.style.transform = 'scale(0.9)';
     setTimeout(() => {
-        eloValueElement.textContent = elo === 'N/A' || elo === 'ERROR' ? elo : formatElo(elo);
-        eloValueElement.style.transform = 'scale(1)';
+        eloElement.textContent = elo === 'N/A' || elo === 'ERROR' ? elo : formatElo(elo);
+        eloElement.style.transform = 'scale(1)';
     }, 150);
     
     nameElement.textContent = playerName;
@@ -1100,50 +1078,41 @@ function updateDisplay(elo, playerName, rank, avatar = '', matchStats = null) {
     
     // Обновление статистики последнего матча
     if (matchStats) {
+        console.log('Обновление статистики последнего матча в UI:', matchStats);
+        
         const killsElement = document.getElementById('statKills');
         const deathsElement = document.getElementById('statDeaths');
         const kdElement = document.getElementById('statKD');
-        const eloChangeElement = document.getElementById('statELO');
+        const eloElement = document.getElementById('statELO');
         const mapElement = document.getElementById('mapValue');
         
-        if (killsElement) killsElement.textContent = formatStat(matchStats.kills);
-        if (deathsElement) deathsElement.textContent = formatStat(matchStats.deaths);
-        if (kdElement) kdElement.textContent = formatStat(matchStats.kd);
-        
-        if (eloChangeElement) {
-            let eloChangeText = '---';
-            if (matchStats.eloChange && matchStats.eloChange !== 'N/A' && matchStats.eloChange !== null) {
-                if (typeof matchStats.eloChange === 'number') {
-                    if (matchStats.eloChange > 0) {
-                        eloChangeText = `+${matchStats.eloChange}`;
-                    } else if (matchStats.eloChange < 0) {
-                        eloChangeText = matchStats.eloChange.toString();
-                    } else {
-                        eloChangeText = '0';
-                    }
-                } else {
-                    eloChangeText = matchStats.eloChange.toString();
-                }
-            }
-            
-            eloChangeElement.textContent = eloChangeText;
-            
+        if (killsElement) {
+            killsElement.textContent = formatStat(matchStats.kills);
+        }
+        if (deathsElement) {
+            deathsElement.textContent = formatStat(matchStats.deaths);
+        }
+        if (kdElement) {
+            kdElement.textContent = formatStat(matchStats.kd);
+        }
+        if (eloElement) {
+            eloElement.textContent = formatStat(matchStats.eloChange);
             // Цвет для ELO изменения
-            if (eloChangeText !== '---' && eloChangeText !== 'N/A') {
-                if (eloChangeText.startsWith('+')) {
-                    eloChangeElement.style.color = '#4ade80';
-                } else if (eloChangeText.startsWith('-')) {
-                    eloChangeElement.style.color = '#f87171';
+            if (matchStats.eloChange && matchStats.eloChange !== 'N/A') {
+                if (matchStats.eloChange.startsWith('+')) {
+                    eloElement.style.color = '#4ade80'; // Зеленый для плюса
+                } else if (matchStats.eloChange.startsWith('-')) {
+                    eloElement.style.color = '#f87171'; // Красный для минуса
                 } else {
-                    eloChangeElement.style.color = '#ffffff';
+                    eloElement.style.color = '#ffffff'; // Белый для нуля
                 }
-            } else {
-                eloChangeElement.style.color = '#ffffff';
             }
         }
-        
-        if (mapElement) mapElement.textContent = formatStat(matchStats.map);
+        if (mapElement) {
+            mapElement.textContent = formatStat(matchStats.map);
+        }
     } else {
+        console.log('Статистика последнего матча не передана в updateDisplay');
         // Показываем "---" если нет данных
         const elements = ['statKills', 'statDeaths', 'statKD', 'statELO', 'mapValue'];
         elements.forEach(id => {
@@ -1155,27 +1124,27 @@ function updateDisplay(elo, playerName, rank, avatar = '', matchStats = null) {
     // Изменение цвета в зависимости от ELO (в стиле WINLINE - белый/оранжевый)
     if (typeof elo === 'number') {
         // Удаляем предыдущие атрибуты
-        eloValueElement.removeAttribute('data-elo-range');
+        eloElement.removeAttribute('data-elo-range');
         
         if (elo >= 2000) {
-            eloValueElement.style.color = '#ff6b35'; // Оранжевый для высокого ELO
-            eloValueElement.setAttribute('data-elo-range', 'high');
+            eloElement.style.color = '#ff6b35'; // Оранжевый для высокого ELO
+            eloElement.setAttribute('data-elo-range', 'high');
         } else if (elo >= 1500) {
-            eloValueElement.style.color = '#ff8c5a'; // Светло-оранжевый
-            eloValueElement.setAttribute('data-elo-range', 'medium');
+            eloElement.style.color = '#ff8c5a'; // Светло-оранжевый
+            eloElement.setAttribute('data-elo-range', 'medium');
         } else if (elo >= 1000) {
-            eloValueElement.style.color = '#ffffff'; // Белый
-            eloValueElement.setAttribute('data-elo-range', 'low');
+            eloElement.style.color = '#ffffff'; // Белый
+            eloElement.setAttribute('data-elo-range', 'low');
         } else {
-            eloValueElement.style.color = '#ffffff'; // Белый
-            eloValueElement.setAttribute('data-elo-range', 'low');
+            eloElement.style.color = '#ffffff'; // Белый
+            eloElement.setAttribute('data-elo-range', 'low');
         }
     } else if (elo === 'ERROR') {
-        eloValueElement.style.color = '#ff6b35'; // Оранжевый для ошибки
-        eloValueElement.removeAttribute('data-elo-range');
+        eloElement.style.color = '#ff6b35'; // Оранжевый для ошибки
+        eloElement.removeAttribute('data-elo-range');
     } else {
-        eloValueElement.style.color = '#ffffff'; // Белый по умолчанию
-        eloValueElement.removeAttribute('data-elo-range');
+        eloElement.style.color = '#ffffff'; // Белый по умолчанию
+        eloElement.removeAttribute('data-elo-range');
     }
 }
 
