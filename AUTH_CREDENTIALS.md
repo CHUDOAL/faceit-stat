@@ -115,3 +115,4 @@ WIDGET_PASSWORD=dbP5m9vTcfJegZDqC6MRKykHSzhpFBiG
    ```
 3. Форма авторизации не появится
 
+
