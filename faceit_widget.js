@@ -1083,8 +1083,7 @@ function updateDisplay(elo, playerName, rank, avatar = '', matchStats = null) {
         const killsElement = document.getElementById('statKills');
         const deathsElement = document.getElementById('statDeaths');
         const kdElement = document.getElementById('statKD');
-        const eloElement = document.getElementById('statELO');
-        const mapElement = document.getElementById('mapValue');
+        const mapElement = document.getElementById('statMap');
         
         if (killsElement) {
             killsElement.textContent = formatStat(matchStats.kills);
@@ -1095,26 +1094,13 @@ function updateDisplay(elo, playerName, rank, avatar = '', matchStats = null) {
         if (kdElement) {
             kdElement.textContent = formatStat(matchStats.kd);
         }
-        if (eloElement) {
-            eloElement.textContent = formatStat(matchStats.eloChange);
-            // Цвет для ELO изменения
-            if (matchStats.eloChange && matchStats.eloChange !== 'N/A') {
-                if (matchStats.eloChange.startsWith('+')) {
-                    eloElement.style.color = '#4ade80'; // Зеленый для плюса
-                } else if (matchStats.eloChange.startsWith('-')) {
-                    eloElement.style.color = '#f87171'; // Красный для минуса
-                } else {
-                    eloElement.style.color = '#ffffff'; // Белый для нуля
-                }
-            }
-        }
         if (mapElement) {
             mapElement.textContent = formatStat(matchStats.map);
         }
     } else {
         console.log('Статистика последнего матча не передана в updateDisplay');
         // Показываем "---" если нет данных
-        const elements = ['statKills', 'statDeaths', 'statKD', 'statELO', 'mapValue'];
+        const elements = ['statKills', 'statDeaths', 'statKD', 'statMap'];
         elements.forEach(id => {
             const el = document.getElementById(id);
             if (el) el.textContent = '---';
