@@ -378,16 +378,19 @@ async function fetchPlayerDataWithAPI() {
             }
         }
         
-        // Получаем статистику последнего матча
+        // Получаем статистику последнего матча (не блокируем отображение, если ошибка)
         let lastMatchStats = null;
         if (config.playerId) {
             try {
                 lastMatchStats = await fetchLastMatchStats(config.playerId, playerData.games?.cs2 ? 'cs2' : 'csgo');
             } catch (error) {
-                console.error('Ошибка получения последнего матча:', error);
+                console.error('Ошибка получения последнего матча (API метод):', error);
+                // Продолжаем работу даже если не удалось получить последний матч
+                lastMatchStats = null;
             }
         }
         
+        // Всегда обновляем отображение, даже если нет данных о последнем матче
         updateDisplay(elo, config.faceitNickname, getRankName(level), avatar, lastMatchStats);
         
     } catch (error) {
@@ -643,16 +646,19 @@ async function fetchPlayerDataAlternative() {
             }
         }
         
-        // Получаем статистику последнего матча
+        // Получаем статистику последнего матча (не блокируем отображение, если ошибка)
         let lastMatchStats = null;
         if (config.playerId) {
             try {
                 lastMatchStats = await fetchLastMatchStats(config.playerId, playerData.games?.cs2 ? 'cs2' : 'csgo');
             } catch (error) {
-                console.error('Ошибка получения последнего матча:', error);
+                console.error('Ошибка получения последнего матча (альтернативный метод):', error);
+                // Продолжаем работу даже если не удалось получить последний матч
+                lastMatchStats = null;
             }
         }
         
+        // Всегда обновляем отображение, даже если нет данных о последнем матче
         updateDisplay(elo, config.faceitNickname, getRankName(level), avatar, lastMatchStats);
         
     } catch (error) {
@@ -709,6 +715,8 @@ async function fetchLastMatchStats(playerId, gameType = 'cs2') {
         // Получаем историю матчей
         const historyUrl = `${FACEIT_API_BASE}/players/${playerId}/history?game=${gameType}&offset=0&limit=1`;
         
+        console.log('Запрос истории матчей:', historyUrl);
+        
         const historyResponse = await fetch(historyUrl, {
             method: 'GET',
             headers: {
@@ -718,7 +726,9 @@ async function fetchLastMatchStats(playerId, gameType = 'cs2') {
         });
         
         if (!historyResponse.ok) {
-            throw new Error(`Ошибка получения истории: ${historyResponse.status}`);
+            console.error('Ошибка получения истории матчей:', historyResponse.status, historyResponse.statusText);
+            // Не бросаем ошибку, просто возвращаем null
+            return null;
         }
         
         const historyData = await historyResponse.json();
@@ -769,7 +779,9 @@ async function fetchLastMatchStats(playerId, gameType = 'cs2') {
         });
         
         if (!matchResponse.ok) {
-            throw new Error(`Ошибка получения матча: ${matchResponse.status}`);
+            console.error('Ошибка получения матча:', matchResponse.status);
+            // Пробуем получить данные только из истории матча
+            return getMatchStatsFromHistory(lastMatch, playerId);
         }
         
         const matchData = await matchResponse.json();
@@ -986,8 +998,58 @@ async function fetchLastMatchStats(playerId, gameType = 'cs2') {
         
     } catch (error) {
         console.error('Ошибка получения последнего матча:', error);
+        // Возвращаем null вместо того, чтобы бросать ошибку
         return null;
     }
+}
+
+// Получение статистики матча только из истории (fallback)
+function getMatchStatsFromHistory(lastMatch, playerId) {
+    const matchStats = {
+        kills: 'N/A',
+        deaths: 'N/A',
+        kd: 'N/A',
+        eloChange: 'N/A',
+        map: 'N/A'
+    };
+    
+    // Получаем изменение ELO из истории
+    const possibleEloFields = [
+        'elo', 'elo_change', 'elo_delta', 'elo change', 'elo-change',
+        'eloChange', 'eloDelta', 'faceit_elo_change', 'faceit_elo_delta',
+        'rating_change', 'rating_delta', 'change', 'delta'
+    ];
+    
+    for (const field of possibleEloFields) {
+        const value = lastMatch[field];
+        if (value !== undefined && value !== null && value !== '') {
+            const numValue = typeof value === 'number' ? value : parseInt(value);
+            if (!isNaN(numValue)) {
+                if (numValue > 0) {
+                    matchStats.eloChange = `+${numValue}`;
+                } else if (numValue < 0) {
+                    matchStats.eloChange = numValue.toString();
+                } else {
+                    matchStats.eloChange = '0';
+                }
+                break;
+            }
+        }
+    }
+    
+    // Получаем карту из истории
+    if (lastMatch.match_round_stats && lastMatch.match_round_stats.length > 0) {
+        matchStats.map = lastMatch.match_round_stats[0].Map || 'N/A';
+    } else if (lastMatch.map) {
+        matchStats.map = lastMatch.map;
+    }
+    
+    // Очищаем название карты от префикса de_
+    if (matchStats.map && matchStats.map !== 'N/A') {
+        matchStats.map = matchStats.map.toString().replace(/^de_/i, '').toUpperCase();
+    }
+    
+    return matchStats;
 }
 
 // Обновление отображения
