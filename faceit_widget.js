@@ -1084,6 +1084,7 @@ function updateDisplay(elo, playerName, rank, avatar = '', matchStats = null) {
         const deathsElement = document.getElementById('statDeaths');
         const kdElement = document.getElementById('statKD');
         const mapElement = document.getElementById('statMap');
+        const mapValueElement = document.getElementById('mapValue');
         
         if (killsElement) {
             killsElement.textContent = formatStat(matchStats.kills);
@@ -1097,10 +1098,13 @@ function updateDisplay(elo, playerName, rank, avatar = '', matchStats = null) {
         if (mapElement) {
             mapElement.textContent = formatStat(matchStats.map);
         }
+        if (mapValueElement) {
+            mapValueElement.textContent = formatStat(matchStats.map);
+        }
     } else {
         console.log('Статистика последнего матча не передана в updateDisplay');
         // Показываем "---" если нет данных
-        const elements = ['statKills', 'statDeaths', 'statKD', 'statMap'];
+        const elements = ['statKills', 'statDeaths', 'statKD', 'statMap', 'mapValue'];
         elements.forEach(id => {
             const el = document.getElementById(id);
             if (el) el.textContent = '---';
