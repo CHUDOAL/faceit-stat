@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вход - Faceit Widget</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a2d5a 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: rgba(10, 14, 39, 0.9);
+            border-radius: 20px;
+            border: 3px solid #ff6b35;
+            box-shadow: 
+                0 0 30px rgba(255, 107, 53, 0.4),
+                inset 0 0 20px rgba(255, 107, 53, 0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+            backdrop-filter: blur(10px);
+        }
+
+        .login-title {
+            color: #ffffff;
+            font-size: 28px;
+            font-weight: 900;
+            text-align: center;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .login-url {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 12px;
+            text-align: center;
+            margin-bottom: 30px;
+            word-break: break-all;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid #ff6b35;
+            border-radius: 10px;
+            color: #ffffff;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #ff8c5a;
+            box-shadow: 0 0 15px rgba(255, 107, 53, 0.4);
+        }
+
+        .form-input::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #ff6b35 0%, #ff8c5a 100%);
+            color: #ffffff;
+            box-shadow: 0 0 20px rgba(255, 107, 53, 0.4);
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 30px rgba(255, 107, 53, 0.6);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+
+        .error-message {
+            background: rgba(255, 0, 0, 0.2);
+            border: 2px solid #ff0000;
+            border-radius: 10px;
+            padding: 12px;
+            color: #ff6b6b;
+            font-size: 14px;
+            margin-bottom: 20px;
+            display: none;
+            text-align: center;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h1 class="login-title">Вход</h1>
+        <div class="login-url" id="currentUrl"></div>
+        
+        <div class="error-message" id="errorMessage"></div>
+        
+        <form id="loginForm">
+            <div class="form-group">
+                <label class="form-label" for="username">Имя пользователя</label>
+                <input 
+                    type="text" 
+                    id="username" 
+                    class="form-input" 
+                    placeholder="Введите логин"
+                    required
+                    autocomplete="username"
+                >
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="password">Пароль</label>
+                <input 
+                    type="password" 
+                    id="password" 
+                    class="form-input" 
+                    placeholder="Введите пароль"
+                    required
+                    autocomplete="current-password"
+                >
+            </div>
+            
+            <div class="button-group">
+                <button type="submit" class="btn btn-primary">Вход</button>
+                <button type="button" class="btn btn-secondary" onclick="clearForm()">Отмена</button>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        // Показываем текущий URL
+        document.getElementById('currentUrl').textContent = window.location.href;
+
+        // Данные для авторизации
+        const CORRECT_USERNAME = 'Mamix';
+        const CORRECT_PASSWORD = 'kiklol';
+
+        // Проверяем, авторизован ли пользователь
+        function checkAuth() {
+            const authToken = localStorage.getItem('widget_auth_token');
+            if (authToken === 'authenticated') {
+                // Перенаправляем на виджет
+                window.location.href = 'faceit_elo_widget.html';
+            }
+        }
+
+        // Обработка формы логина
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const errorMessage = document.getElementById('errorMessage');
+            
+            // Скрываем ошибку
+            errorMessage.classList.remove('show');
+            
+            // Проверяем логин и пароль
+            if (username === CORRECT_USERNAME && password === CORRECT_PASSWORD) {
+                // Сохраняем токен авторизации
+                localStorage.setItem('widget_auth_token', 'authenticated');
+                
+                // Перенаправляем на виджет
+                window.location.href = 'faceit_elo_widget.html';
+            } else {
+                // Показываем ошибку
+                errorMessage.textContent = 'Неверный логин или пароль';
+                errorMessage.classList.add('show');
+                
+                // Очищаем поле пароля
+                document.getElementById('password').value = '';
+            }
+        });
+
+        // Очистка формы
+        function clearForm() {
+            document.getElementById('loginForm').reset();
+            document.getElementById('errorMessage').classList.remove('show');
+        }
+
+        // Проверяем авторизацию при загрузке
+        checkAuth();
+
+        // Фокус на поле логина
+        document.getElementById('username').focus();
+    </script>
+</body>
+</html>
+

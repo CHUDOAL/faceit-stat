@@ -6,79 +6,25 @@ HTTP сервер для OBS виджета Faceit ELO с защитой дос�
 
 from http.server import HTTPServer, BaseHTTPRequestHandler
 import os
-import base64
 import urllib.parse
 from pathlib import Path
 
-# Получаем пароль из переменной окружения или используем по умолчанию
-# ВАЖНО: В продакшене всегда устанавливайте через переменные окружения!
-WIDGET_PASSWORD = os.environ.get('WIDGET_PASSWORD', 'your_secure_password_here')
-WIDGET_TOKEN = os.environ.get('WIDGET_TOKEN', None)  # Опциональный токен в URL
-
-# Проверка безопасности в продакшене
-if os.environ.get('RENDER') or os.environ.get('DYNO'):
-    if WIDGET_PASSWORD == 'your_secure_password_here':
-        print("⚠️  ВНИМАНИЕ: Используется пароль по умолчанию! Установите WIDGET_PASSWORD в переменных окружения!")
-    if not WIDGET_TOKEN:
-        print("⚠️  Рекомендуется установить WIDGET_TOKEN для дополнительной защиты!")
+# Авторизация теперь на клиенте через форму на сайте
+# Логин: Mamix, Пароль: kiklol
 
 class SecureCORSRequestHandler(BaseHTTPRequestHandler):
     def do_GET(self):
-        # Проверяем токен в URL, если он установлен
-        if WIDGET_TOKEN:
-            parsed_path = urllib.parse.urlparse(self.path)
-            query_params = urllib.parse.parse_qs(parsed_path.query)
-            token = query_params.get('token', [None])[0]
-            
-            if token != WIDGET_TOKEN:
-                self.send_response(403)
-                self.send_header('Content-type', 'text/html')
-                self.end_headers()
-                self.wfile.write(b'<h1>403 Forbidden</h1><p>Invalid token</p>')
-                return
-        
-        # Проверяем Basic Auth
-        auth_header = self.headers.get('Authorization')
-        
-        if not auth_header or not auth_header.startswith('Basic '):
-            self.send_response(401)
-            self.send_header('WWW-Authenticate', 'Basic realm="Widget Access"')
-            self.send_header('Content-type', 'text/html')
-            self.end_headers()
-            self.wfile.write(b'<h1>401 Unauthorized</h1><p>Authentication required</p>')
-            return
-        
-        # Декодируем и проверяем пароль
-        try:
-            encoded = auth_header.split(' ')[1]
-            decoded = base64.b64decode(encoded).decode('utf-8')
-            username, password = decoded.split(':', 1)
-            
-            if password != WIDGET_PASSWORD:
-                self.send_response(401)
-                self.send_header('WWW-Authenticate', 'Basic realm="Widget Access"')
-                self.send_header('Content-type', 'text/html')
-                self.end_headers()
-                self.wfile.write(b'<h1>401 Unauthorized</h1><p>Invalid password</p>')
-                return
-        except Exception:
-            self.send_response(401)
-            self.send_header('WWW-Authenticate', 'Basic realm="Widget Access"')
-            self.send_header('Content-type', 'text/html')
-            self.end_headers()
-            self.wfile.write(b'<h1>401 Unauthorized</h1><p>Invalid credentials</p>')
-            return
-        
-        # Если аутентификация прошла, отдаем файл
+        # Убираем авторизацию - теперь она на клиенте
+        # Просто отдаем файлы
         self.serve_file()
     
     def serve_file(self):
         # Убираем токен из пути, если он есть
         path = urllib.parse.urlparse(self.path).path
         
-        # Если путь - корень или пустой, показываем виджет
+        # Если путь - корень или пустой, показываем страницу логина
         if path == '/' or path == '':
-            path = '/faceit_elo_widget.html'
+            path = '/login.html'
         
         # Безопасный путь к файлу
         script_dir = Path(__file__).parent
@@ -162,27 +108,19 @@ def run_server(port=None, host='0.0.0.0'):
     
     print(f"🚀 Сервер запущен на {base_url}")
     print(f"📁 Открыта директория: {script_dir}")
-    print(f"🔐 Защита: HTTP Basic Auth" + (" + Token" if WIDGET_TOKEN else ""))
-    print(f"🔑 Пароль: {WIDGET_PASSWORD[:3]}*** (из переменной WIDGET_PASSWORD)")
-    
-    if WIDGET_TOKEN:
-        print(f"🎫 Токен в URL: {WIDGET_TOKEN[:3]}*** (из переменной WIDGET_TOKEN)")
-        print(f"🌐 URL с токеном: {base_url}/faceit_elo_widget.html?token={WIDGET_TOKEN}")
-    else:
-        print(f"🌐 URL: {base_url}/faceit_elo_widget.html")
+    print(f"🔐 Защита: Форма авторизации на сайте")
+    print(f"👤 Логин: Mamix")
+    print(f"🔑 Пароль: kiklol")
+    print(f"🌐 URL: {base_url}/")
+    print(f"🌐 URL виджета: {base_url}/faceit_elo_widget.html")
     
     print("\n💡 Для использования в OBS:")
     print(f"   1. Добавьте 'Browser Source' в OBS")
-    if WIDGET_TOKEN:
-        print(f"   2. URL: {base_url}/faceit_elo_widget.html?token={WIDGET_TOKEN}")
-        print(f"   3. В настройках Browser Source включите 'Shutdown source when not visible'")
-    else:
-        print(f"   2. URL: {base_url}/faceit_elo_widget.html")
-        print(f"   3. В настройках Browser Source включите 'Shutdown source when not visible'")
-        print(f"   4. Добавьте HTTP Basic Auth:")
-        print(f"      Username: widget (или любое)")
-        print(f"      Password: {WIDGET_PASSWORD}")
-    print(f"   5. Ширина: 800, Высота: 400")
+    print(f"   2. URL: {base_url}/faceit_elo_widget.html")
+    print(f"   3. В настройках Browser Source включите 'Shutdown source when not visible'")
+    print(f"   4. Ширина: 800, Высота: 400")
+    print(f"\n⚠️  Примечание: Авторизация происходит через форму на сайте")
+    print(f"   Логин: Mamix, Пароль: kiklol")
     print("\n⚠️  Нажмите Ctrl+C для остановки сервера\n")
     
     try:

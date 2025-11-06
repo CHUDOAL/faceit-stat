@@ -5,6 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Faceit ELO Widget - WINLINE Style</title>
     <link rel="stylesheet" href="./faceit_widget.css">
+    <script>
+        // Проверка авторизации
+        (function() {
+            const authToken = localStorage.getItem('widget_auth_token');
+            if (authToken !== 'authenticated') {
+                // Перенаправляем на страницу логина
+                window.location.href = 'login.html';
+            }
+        })();
+    </script>
 </head>
 <body>
     <div class="widget-container">
