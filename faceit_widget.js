@@ -378,17 +378,23 @@ async function fetchPlayerDataWithAPI() {
             }
         }
         
-        // Получаем статистику последнего матча
+        // Получаем статистику последнего матча (не блокируем отображение основных данных)
         let lastMatchStats = null;
         if (config.playerId) {
             try {
+                console.log('Получение статистики последнего матча для playerId:', config.playerId);
                 lastMatchStats = await fetchLastMatchStats(config.playerId, playerData.games?.cs2 ? 'cs2' : 'csgo');
+                console.log('Статистика последнего матча получена:', lastMatchStats);
             } catch (error) {
                 console.error('Ошибка получения последнего матча:', error);
                 lastMatchStats = null;
             }
+        } else {
+            console.warn('playerId не установлен, невозможно получить статистику последнего матча');
         }
         
+        // Всегда обновляем отображение, даже если нет данных о последнем матче
+        console.log('Обновление отображения с данными:', { elo, playerName: config.faceitNickname, rank: getRankName(level), avatar: avatar ? 'есть' : 'нет', lastMatchStats });
         updateDisplay(elo, config.faceitNickname, getRankName(level), avatar, lastMatchStats);
         
     } catch (error) {
@@ -644,17 +650,23 @@ async function fetchPlayerDataAlternative() {
             }
         }
         
-        // Получаем статистику последнего матча
+        // Получаем статистику последнего матча (не блокируем отображение основных данных)
         let lastMatchStats = null;
         if (config.playerId) {
             try {
+                console.log('Получение статистики последнего матча для playerId (альтернативный метод):', config.playerId);
                 lastMatchStats = await fetchLastMatchStats(config.playerId, playerData.games?.cs2 ? 'cs2' : 'csgo');
+                console.log('Статистика последнего матча получена (альтернативный метод):', lastMatchStats);
             } catch (error) {
-                console.error('Ошибка получения последнего матча:', error);
+                console.error('Ошибка получения последнего матча (альтернативный метод):', error);
                 lastMatchStats = null;
             }
+        } else {
+            console.warn('playerId не установлен (альтернативный метод), невозможно получить статистику последнего матча');
         }
         
+        // Всегда обновляем отображение, даже если нет данных о последнем матче
+        console.log('Обновление отображения с данными (альтернативный метод):', { elo, playerName: config.faceitNickname, rank: getRankName(level), avatar: avatar ? 'есть' : 'нет', lastMatchStats });
         updateDisplay(elo, config.faceitNickname, getRankName(level), avatar, lastMatchStats);
         
     } catch (error) {
@@ -723,6 +735,21 @@ async function fetchLastMatchStats(playerId, gameType = 'cs2') {
         
         if (!historyResponse.ok) {
             console.error('Ошибка получения истории матчей:', historyResponse.status, historyResponse.statusText);
+            // Пробуем получить данные без авторизации (публичный API)
+            try {
+                const publicHistoryResponse = await fetch(historyUrl);
+                if (publicHistoryResponse.ok) {
+                    const publicHistoryData = await publicHistoryResponse.json();
+                    if (publicHistoryData.items && publicHistoryData.items.length > 0) {
+                        console.log('История матчей получена через публичный API');
+                        // Продолжаем обработку с публичными данными
+                        const lastMatch = publicHistoryData.items[0];
+                        return getMatchStatsFromHistory(lastMatch, playerId);
+                    }
+                }
+            } catch (publicError) {
+                console.error('Ошибка получения истории через публичный API:', publicError);
+            }
             // Не бросаем ошибку, просто возвращаем null
             return null;
         }
@@ -777,7 +804,14 @@ async function fetchLastMatchStats(playerId, gameType = 'cs2') {
         if (!matchResponse.ok) {
             console.error('Ошибка получения матча:', matchResponse.status);
             // Пробуем получить данные только из истории матча
-            return getMatchStatsFromHistory(lastMatch, playerId);
+            console.log('Попытка получить данные из истории матча');
+            const historyStats = getMatchStatsFromHistory(lastMatch, playerId);
+            if (historyStats && (historyStats.eloChange !== 'N/A' || historyStats.map !== 'N/A')) {
+                console.log('Данные получены из истории матча:', historyStats);
+                return historyStats;
+            }
+            // Если не получилось, возвращаем null
+            return null;
         }
         
         const matchData = await matchResponse.json();
@@ -1050,21 +1084,34 @@ function getMatchStatsFromHistory(lastMatch, playerId) {
 
 // Обновление отображения
 function updateDisplay(elo, playerName, rank, avatar = '', matchStats = null) {
+    console.log('updateDisplay вызвана с параметрами:', { elo, playerName, rank, avatar: avatar ? 'есть' : 'нет', matchStats });
+    
     const eloValueElement = document.getElementById('eloValue'); // Основной ELO в главном блоке
     const nameElement = document.getElementById('playerName');
-    const rankElement = document.getElementById('rankBadge').querySelector('.rank-text');
+    const rankElement = document.getElementById('rankBadge')?.querySelector('.rank-text');
     const avatarElement = document.getElementById('playerAvatar');
     const avatarPlaceholder = document.getElementById('avatarPlaceholder');
+    
+    if (!eloValueElement || !nameElement || !rankElement) {
+        console.error('Критическая ошибка: не найдены элементы DOM:', {
+            eloValueElement: !!eloValueElement,
+            nameElement: !!nameElement,
+            rankElement: !!rankElement
+        });
+        return;
+    }
     
     // Анимация обновления ELO
     eloValueElement.style.transform = 'scale(0.9)';
     setTimeout(() => {
         eloValueElement.textContent = elo === 'N/A' || elo === 'ERROR' ? elo : formatElo(elo);
         eloValueElement.style.transform = 'scale(1)';
+        console.log('ELO обновлено:', eloValueElement.textContent);
     }, 150);
     
-    nameElement.textContent = playerName;
-    rankElement.textContent = rank;
+    nameElement.textContent = playerName || '---';
+    rankElement.textContent = rank || '---';
+    console.log('Имя и ранг обновлены:', playerName, rank);
     
     // Обновление аватарки
     if (avatar && avatar.trim() !== '') {
