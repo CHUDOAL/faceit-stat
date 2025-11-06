@@ -731,7 +731,32 @@ async function fetchLastMatchStats(playerId, gameType = 'cs2') {
         const lastMatch = historyData.items[0];
         const matchId = lastMatch.match_id;
         
-        console.log('Последний матч:', lastMatch);
+        console.log('Последний матч (полный объект):', JSON.stringify(lastMatch, null, 2));
+        console.log('Все ключи последнего матча:', Object.keys(lastMatch));
+        
+        // Ищем изменение ELO во всех возможных местах
+        const eloFields = {
+            'elo': lastMatch.elo,
+            'elo_change': lastMatch.elo_change,
+            'elo_delta': lastMatch.elo_delta,
+            'elo change': lastMatch['elo change'],
+            'elo-change': lastMatch['elo-change'],
+            'eloChange': lastMatch.eloChange,
+            'eloDelta': lastMatch.eloDelta,
+            'faceit_elo': lastMatch.faceit_elo,
+            'faceit_elo_change': lastMatch.faceit_elo_change
+        };
+        console.log('ELO поля в последнем матче:', eloFields);
+        
+        // Проверяем teams для изменения ELO
+        if (lastMatch.teams) {
+            console.log('Teams в последнем матче:', lastMatch.teams);
+            for (const team of lastMatch.teams) {
+                if (team.players) {
+                    console.log('Players в team:', team.players);
+                }
+            }
+        }
         
         // Получаем детали матча
         const matchUrl = `${FACEIT_API_BASE}/matches/${matchId}`;
@@ -849,24 +874,74 @@ async function fetchLastMatchStats(playerId, gameType = 'cs2') {
         }
         
         // Получаем изменение ELO из истории матча
-        // ELO изменение может быть в разных полях
+        // ELO изменение может быть в разных полях и форматах
         let eloChange = null;
-        if (lastMatch.elo && typeof lastMatch.elo === 'number') {
-            eloChange = lastMatch.elo;
-        } else if (lastMatch.elo_change && typeof lastMatch.elo_change === 'number') {
-            eloChange = lastMatch.elo_change;
-        } else if (lastMatch.elo_delta && typeof lastMatch.elo_delta === 'number') {
-            eloChange = lastMatch.elo_delta;
+        
+        // Пробуем разные варианты полей (проверяем все возможные варианты)
+        const possibleEloFields = [
+            'elo', 'elo_change', 'elo_delta', 'elo change', 'elo-change',
+            'eloChange', 'eloDelta', 'faceit_elo_change', 'faceit_elo_delta',
+            'rating_change', 'rating_delta', 'change', 'delta'
+        ];
+        
+        for (const field of possibleEloFields) {
+            const value = lastMatch[field];
+            if (value !== undefined && value !== null && value !== '') {
+                const numValue = typeof value === 'number' ? value : parseInt(value);
+                if (!isNaN(numValue)) {
+                    eloChange = numValue;
+                    console.log(`Изменение ELO найдено в поле "${field}":`, eloChange);
+                    break;
+                }
+            }
         }
         
-        if (eloChange !== null) {
+        // Если не нашли, пробуем из результата матча или из teams
+        if (eloChange === null || isNaN(eloChange)) {
+            // В Faceit API изменение ELO может быть в teams
+            if (lastMatch.teams && lastMatch.teams.length > 0) {
+                for (const team of lastMatch.teams) {
+                    if (team.players && team.players.length > 0) {
+                        const player = team.players.find(p => 
+                            p.player_id === playerId || 
+                            p.id === playerId ||
+                            p.player_id === lastMatch.game_player_id ||
+                            p.id === lastMatch.game_player_id
+                        );
+                        if (player) {
+                            // Пробуем разные поля для изменения ELO
+                            if (player.elo !== undefined && player.elo !== null) {
+                                eloChange = typeof player.elo === 'number' ? player.elo : parseInt(player.elo);
+                            } else if (player.elo_change !== undefined && player.elo_change !== null) {
+                                eloChange = typeof player.elo_change === 'number' ? player.elo_change : parseInt(player.elo_change);
+                            } else if (player.elo_delta !== undefined && player.elo_delta !== null) {
+                                eloChange = typeof player.elo_delta === 'number' ? player.elo_delta : parseInt(player.elo_delta);
+                            }
+                            if (eloChange !== null && !isNaN(eloChange)) break;
+                        }
+                    }
+                }
+            }
+            
+            // Если все еще не нашли, пробуем вычислить из текущего и предыдущего ELO
+            if ((eloChange === null || isNaN(eloChange)) && lastMatch.faceit_elo !== undefined) {
+                // Если есть текущий ELO в матче, можно вычислить изменение
+                // Но для этого нужен предыдущий ELO, который обычно не в истории
+            }
+        }
+        
+        // Форматируем изменение ELO
+        if (eloChange !== null && !isNaN(eloChange)) {
             if (eloChange > 0) {
                 matchStats.eloChange = `+${eloChange}`;
             } else if (eloChange < 0) {
-                matchStats.eloChange = eloChange.toString();
+                matchStats.eloChange = eloChange.toString(); // Уже будет с минусом
             } else {
                 matchStats.eloChange = '0';
             }
+            console.log('Изменение ELO найдено:', eloChange, '→', matchStats.eloChange);
+        } else {
+            console.log('Изменение ELO не найдено в последнем матче');
         }
         
         // Получаем карту из разных источников
@@ -963,16 +1038,36 @@ function updateDisplay(elo, playerName, rank, avatar = '', matchStats = null) {
             kdElement.textContent = formatStat(matchStats.kd);
         }
         if (eloElement) {
-            eloElement.textContent = formatStat(matchStats.eloChange);
-            // Цвет для ELO изменения
-            if (matchStats.eloChange && matchStats.eloChange !== 'N/A') {
-                if (matchStats.eloChange.startsWith('+')) {
-                    eloElement.style.color = '#4ade80'; // Зеленый для плюса
-                } else if (matchStats.eloChange.startsWith('-')) {
-                    eloElement.style.color = '#f87171'; // Красный для минуса
-                } else {
-                    eloElement.style.color = '#ffffff'; // Белый для нуля
+            // Форматируем изменение ELO
+            let eloChangeText = '---';
+            if (matchStats.eloChange && matchStats.eloChange !== 'N/A' && matchStats.eloChange !== null) {
+                eloChangeText = matchStats.eloChange.toString();
+                // Убеждаемся, что отрицательные значения отображаются с минусом
+                if (typeof matchStats.eloChange === 'number' && matchStats.eloChange < 0) {
+                    eloChangeText = matchStats.eloChange.toString();
+                } else if (typeof matchStats.eloChange === 'number' && matchStats.eloChange > 0) {
+                    eloChangeText = `+${matchStats.eloChange}`;
+                } else if (typeof matchStats.eloChange === 'number' && matchStats.eloChange === 0) {
+                    eloChangeText = '0';
                 }
+            }
+            
+            eloElement.textContent = eloChangeText;
+            console.log('ELO изменение отображается:', eloChangeText);
+            
+            // Цвет для ELO изменения
+            if (eloChangeText !== '---' && eloChangeText !== 'N/A') {
+                if (eloChangeText.startsWith('+')) {
+                    eloElement.style.color = '#4ade80'; // Зеленый для плюса
+                } else if (eloChangeText.startsWith('-')) {
+                    eloElement.style.color = '#f87171'; // Красный для минуса
+                } else if (eloChangeText === '0') {
+                    eloElement.style.color = '#ffffff'; // Белый для нуля
+                } else {
+                    eloElement.style.color = '#ffffff'; // Белый по умолчанию
+                }
+            } else {
+                eloElement.style.color = '#ffffff'; // Белый если нет данных
             }
         }
         if (mapElement) {
